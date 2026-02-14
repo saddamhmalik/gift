@@ -8,7 +8,7 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::prefix('v1')->group(function () {
-    Route::get('/health', fn () => response()->json(['status' => 'ok', 'app' => 'Gift Box API']));
+    Route::get('/health', fn () => response()->json(['status' => 'ok', 'app' => config('app.name') . ' API']));
 
     Route::get('/categories', [App\Http\Controllers\Api\V1\CategoryController::class, 'index']);
     Route::get('/categories/{category}', [App\Http\Controllers\Api\V1\CategoryController::class, 'show']);

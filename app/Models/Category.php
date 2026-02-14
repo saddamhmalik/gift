@@ -13,18 +13,33 @@ class Category extends Model
         'parent_id',
         'name',
         'slug',
+        'url',
         'description',
+        'short_description',
+        'canonical_url',
         'image_url',
+        'thumbnail_url',
         'color_code',
+        'bg_color_code',
         'offer_description',
+        'meta_index',
+        'meta_keyword',
+        'page_title',
+        'meta_description',
+        'sub_category_filter',
+        'subcategories_count',
         'sort_order',
         'is_active',
+        'last_synced_at',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'sub_category_filter' => 'boolean',
+            'meta_index' => 'boolean',
+            'last_synced_at' => 'datetime',
         ];
     }
 
