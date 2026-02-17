@@ -11,12 +11,9 @@ class DashboardController extends Controller
 {
     public function index(): View
     {
-        $categoryCount = Category::count();
-        $productCount = Product::count();
-
         return view('admin.dashboard', [
-            'categoryCount' => $categoryCount,
-            'productCount' => $productCount,
+            'categoryCount' => Category::count(),
+            'productCount' => Product::count(),
         ]);
     }
 }

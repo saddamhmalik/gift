@@ -29,11 +29,17 @@ class CategoryController extends Controller
         return view('admin.categories.index', compact('categories'));
     }
 
-    public function show(Category $category): View
+    public function show(Request $request, Category $category): View
     {
-        $category->load(['parent', 'children' => fn ($q) => $q->withCount('products'), 'products']);
+        $category->load(['parent', 'children' => fn ($q) => $q->withCount('products')]);
+        $category->loadCount('products');
 
-        return view('admin.categories.show', compact('category'));
+        $products = $category->products()
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.categories.show', compact('category', 'products'));
     }
 
     public function sync(WoohooCategorySyncService $sync): RedirectResponse
@@ -51,7 +57,7 @@ class CategoryController extends Controller
 
     public function create(): View
     {
-        $parents = Category::orderBy('name')->get();
+        $parents = Category::orderBy('name')->get(['id', 'name']);
 
         return view('admin.categories.form', ['category' => null, 'parents' => $parents]);
     }
@@ -80,7 +86,7 @@ class CategoryController extends Controller
 
     public function edit(Category $category): View
     {
-        $parents = Category::where('id', '!=', $category->id)->orderBy('name')->get();
+        $parents = Category::where('id', '!=', $category->id)->orderBy('name')->get(['id', 'name']);
 
         return view('admin.categories.form', ['category' => $category, 'parents' => $parents]);
     }

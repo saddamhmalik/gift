@@ -48,23 +48,26 @@ class WoohooProductDetailService
         return true;
     }
 
+    public const SYNC_CHUNK_SIZE = 100;
+
     public function syncAll(bool $clearToken = false): array
     {
         if ($clearToken) {
             $this->client->clearCachedToken();
         }
 
-        $products = Product::orderBy('id')->get();
         $synced = 0;
         $failed = 0;
 
-        foreach ($products as $product) {
-            if ($this->syncProductDetails($product)) {
-                $synced++;
-            } else {
-                $failed++;
+        Product::orderBy('id')->chunk(self::SYNC_CHUNK_SIZE, function ($products) use (&$synced, &$failed) {
+            foreach ($products as $product) {
+                if ($this->syncProductDetails($product)) {
+                    $synced++;
+                } else {
+                    $failed++;
+                }
             }
-        }
+        });
 
         return [
             'success' => $failed === 0,

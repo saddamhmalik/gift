@@ -28,17 +28,25 @@ class CategoryController extends Controller
         return $this->success($categories);
     }
 
-    public function show(Category $category): JsonResponse
+    public function show(Request $request, Category $category): JsonResponse
     {
         if (! $category->is_active) {
             return $this->error('Category not found', 404);
         }
 
-        if (request()->boolean('with_children')) {
-            $category->load(['children' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('name')]);
-        }
-        if (request()->boolean('with_parent')) {
-            $category->load('parent');
+        $withChildren = $request->boolean('with_children');
+        $withParent = $request->boolean('with_parent');
+        if ($withChildren || $withParent) {
+            $relations = [];
+            if ($withChildren) {
+                $relations['children'] = fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('name');
+            }
+            if ($withParent) {
+                $relations['parent'] = static function ($q) {
+                    // load parent with no extra constraints
+                };
+            }
+            $category->load($relations);
         }
 
         return $this->success($category);

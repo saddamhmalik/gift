@@ -52,7 +52,7 @@ class WoohooCategorySyncService
         $parentId = $payload['parent_id'];
         unset($payload['parent_id']);
 
-        Category::updateOrCreate(
+        $ourCategory = Category::updateOrCreate(
             ['external_id' => $externalId],
             array_merge($payload, ['slug' => $slug, 'parent_id' => $parentId, 'last_synced_at' => now()])
         );
@@ -63,12 +63,11 @@ class WoohooCategorySyncService
             return $count;
         }
 
-        $ourCategory = Category::where('external_id', (string) ($node['id'] ?? ''))->first();
-        $ourId = $ourCategory?->id;
+        $ourId = $ourCategory->id;
 
         foreach ($subcategories as $sub) {
             if (is_array($sub)) {
-                $count += $this->syncRecursive($sub, $ourId ?? $parentId);
+                $count += $this->syncRecursive($sub, $ourId);
             }
         }
 

@@ -106,19 +106,20 @@
             </div>
             @endif
             <div class="sm:col-span-2">
-                <h3 class="text-sm font-semibold text-slate-700 mb-2">Products ({{ $category->products->count() }})</h3>
-                @if($category->products->isNotEmpty())
+                <h3 class="text-sm font-semibold text-slate-700 mb-2">Products ({{ $category->products_count }})</h3>
+                @if($products->isNotEmpty())
                 <ul class="rounded-lg border border-slate-200 divide-y divide-slate-100">
-                    @foreach($category->products->take(20) as $product)
+                    @foreach($products as $product)
                     <li class="px-4 py-2">
                         <a href="{{ route('admin.products.show', $product) }}" class="text-sm font-medium text-slate-800 hover:underline">{{ $product->name }}</a>
                         <span class="text-xs text-slate-500 ml-2">{{ $product->external_id }}</span>
                     </li>
                     @endforeach
                 </ul>
-                @if($category->products->count() > 20)
-                    <p class="text-xs text-slate-500 mt-2">Showing 20 of {{ $category->products->count() }}. <a href="{{ route('admin.products.index', ['category' => $category->id]) }}" class="hover:underline">View all</a></p>
-                @endif
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                    {{ $products->links() }}
+                    <a href="{{ route('admin.products.index', ['category' => $category->id]) }}" class="text-sm text-slate-600 hover:underline">View all in Products →</a>
+                </div>
                 @else
                 <p class="text-sm text-slate-500">No products in this category.</p>
                 @endif

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Product;
 use App\Services\WoohooProductDetailService;
 use App\Services\WoohooProductSyncService;
@@ -31,14 +32,14 @@ class ProductController extends Controller
 
         $products = $query->paginate(20)->withQueryString();
 
-        $categories = \App\Models\Category::orderBy('name')->get(['id', 'name']);
+        $categories = Category::orderBy('name')->get(['id', 'name']);
 
         return view('admin.products.index', compact('products', 'categories'));
     }
 
     public function show(Product $product): View
     {
-        $product->load('category');
+        $product->loadMissing('category');
 
         return view('admin.products.show', compact('product'));
     }
