@@ -37,6 +37,12 @@
                             Products
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('admin.tags.index') }}" class="flex items-center gap-3 rounded-md border-l-4 border-transparent px-3 py-2.5 text-sm font-medium transition-colors {{ request()->routeIs('admin.tags.*') ? 'border-[#3c8dbc] bg-white/10 text-white' : 'text-[#b8c7ce] hover:bg-white/5 hover:text-white' }}">
+                            <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                            Tags
+                        </a>
+                    </li>
                     <li class="mt-4 border-t border-white/10 pt-4">
                         <a href="{{ url('/horizon') }}" target="_blank" rel="noopener" class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-[#b8c7ce] transition-colors hover:bg-white/5 hover:text-white">
                             <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>

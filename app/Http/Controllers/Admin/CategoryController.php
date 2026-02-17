@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Jobs\SyncWoohooCategoriesJob;
 use App\Models\Category;
+use App\Services\Catalog\CategoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -76,6 +77,7 @@ class CategoryController extends Controller
         $validated['sort_order'] = (int) ($validated['sort_order'] ?? 0);
 
         Category::create($validated);
+        CategoryService::clearCache();
 
         return redirect()->route('admin.categories.index')->with('success', 'Category created.');
     }
@@ -110,6 +112,7 @@ class CategoryController extends Controller
         }
 
         $category->update($validated);
+        CategoryService::clearCache();
 
         return redirect()->route('admin.categories.index')->with('success', 'Category updated.');
     }

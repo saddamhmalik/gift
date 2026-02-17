@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Admin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
@@ -13,14 +13,14 @@ class ProfileController extends Controller
 {
     public function edit(Request $request): View
     {
-        $admin = $this->admin($request);
+        $admin = Auth::guard('admin')->user();
 
         return view('admin.profile.edit', compact('admin'));
     }
 
     public function update(Request $request): RedirectResponse
     {
-        $admin = $this->admin($request);
+        $admin = Auth::guard('admin')->user();
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -39,7 +39,7 @@ class ProfileController extends Controller
 
     public function changePassword(Request $request): RedirectResponse
     {
-        $admin = $this->admin($request);
+        $admin = Auth::guard('admin')->user();
 
         $request->validate([
             'current_password' => 'required',
@@ -53,16 +53,5 @@ class ProfileController extends Controller
         $admin->update(['password' => $request->password]);
 
         return redirect()->route('admin.profile.edit')->with('success', 'Password changed.');
-    }
-
-    protected function admin(Request $request): Admin
-    {
-        $id = session('admin_id');
-        $admin = Admin::find($id);
-        if (! $admin) {
-            abort(403);
-        }
-
-        return $admin;
     }
 }

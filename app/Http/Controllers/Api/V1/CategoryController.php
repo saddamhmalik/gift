@@ -3,52 +3,28 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\Controller;
-use App\Models\Category;
+use App\Services\Catalog\CategoryService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function __construct(
+        protected CategoryService $categoryService
+    ) {}
+
+    public function index(): JsonResponse
     {
-        $query = Category::query()->where('is_active', true);
-
-        if (! $request->boolean('all')) {
-            $query->whereNull('parent_id');
-        }
-        if ($request->filled('parent_id')) {
-            $query->where('parent_id', $request->parent_id);
-        }
-
-        $query->orderBy('sort_order')->orderBy('name');
-        $query->when($request->boolean('with_children'), fn ($q) => $q->with(['children' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('name')]));
-
-        $categories = $query->get();
-
-        return $this->success($categories);
+        $data = $this->categoryService->getParentCategoriesWithSubcategories();
+        return $this->success($data);
     }
 
-    public function show(Request $request, Category $category): JsonResponse
+    public function show(string $slug): JsonResponse
     {
-        if (! $category->is_active) {
+        $category = $this->categoryService->getBySlug($slug);
+        if (!$category) {
             return $this->error('Category not found', 404);
         }
-
-        $withChildren = $request->boolean('with_children');
-        $withParent = $request->boolean('with_parent');
-        if ($withChildren || $withParent) {
-            $relations = [];
-            if ($withChildren) {
-                $relations['children'] = fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('name');
-            }
-            if ($withParent) {
-                $relations['parent'] = static function ($q) {
-                    // load parent with no extra constraints
-                };
-            }
-            $category->load($relations);
-        }
-
-        return $this->success($category);
+        $category->load('children');
+        return $this->success(new \App\Http\Resources\V1\CategoryResource($category));
     }
 }
