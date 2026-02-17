@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncWoohooProductDetailsJob;
+use App\Jobs\SyncWoohooProductsJob;
 use App\Models\Category;
 use App\Models\Product;
-use App\Services\WoohooProductDetailService;
-use App\Services\WoohooProductSyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -44,36 +44,21 @@ class ProductController extends Controller
         return view('admin.products.show', compact('product'));
     }
 
-    public function sync(WoohooProductSyncService $sync): RedirectResponse
+    public function sync(Request $request): RedirectResponse
     {
-        $result = $sync->sync(false);
-
-        if ($result['success']) {
-            return redirect()->route('admin.products.index')
-                ->with('success', "Synced {$result['synced']} products from Woohoo.");
-        }
-
-        $message = $result['synced'] > 0
-            ? "Synced {$result['synced']} products. " . ($result['message'] ?? '')
-            : ($result['message'] ?? 'Sync failed.');
+        $clearToken = $request->boolean('clear_token');
+        SyncWoohooProductsJob::dispatch($clearToken)->onConnection('redis');
 
         return redirect()->route('admin.products.index')
-            ->with($result['synced'] > 0 ? 'success' : 'error', trim($message));
+            ->with('success', 'Product list sync has been queued. Monitor progress in Horizon.');
     }
 
-    public function syncDetails(WoohooProductDetailService $sync): RedirectResponse
+    public function syncDetails(Request $request): RedirectResponse
     {
-        $result = $sync->syncAll(false);
-
-        if ($result['synced'] > 0) {
-            $msg = "Synced details for {$result['synced']} product(s).";
-            if ($result['failed'] > 0) {
-                $msg .= " {$result['failed']} failed.";
-            }
-            return redirect()->route('admin.products.index')->with('success', $msg);
-        }
+        $clearToken = $request->boolean('clear_token');
+        SyncWoohooProductDetailsJob::dispatch($clearToken)->onConnection('redis');
 
         return redirect()->route('admin.products.index')
-            ->with('error', $result['failed'] > 0 ? 'No product details could be fetched.' : 'No products to sync. Sync product list first.');
+            ->with('success', 'Product details sync has been queued. Monitor progress in Horizon.');
     }
 }

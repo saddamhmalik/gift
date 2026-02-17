@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SyncWoohooCategoriesJob;
 use App\Models\Category;
-use App\Services\WoohooCategorySyncService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -42,17 +42,13 @@ class CategoryController extends Controller
         return view('admin.categories.show', compact('category', 'products'));
     }
 
-    public function sync(WoohooCategorySyncService $sync): RedirectResponse
+    public function sync(Request $request): RedirectResponse
     {
-        $result = $sync->sync(false);
-
-        if ($result['success']) {
-            return redirect()->route('admin.categories.index')
-                ->with('success', "Synced {$result['synced']} categories from Woohoo.");
-        }
+        $clearToken = $request->boolean('clear_token');
+        SyncWoohooCategoriesJob::dispatch($clearToken)->onConnection('redis');
 
         return redirect()->route('admin.categories.index')
-            ->with('error', $result['message'] ?? 'Sync failed.');
+            ->with('success', 'Category sync has been queued. Monitor progress in Horizon.');
     }
 
     public function create(): View
