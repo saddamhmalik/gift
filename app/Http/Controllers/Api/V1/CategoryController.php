@@ -22,7 +22,6 @@ class CategoryController extends Controller
 
         $query->orderBy('sort_order')->orderBy('name');
         $query->when($request->boolean('with_children'), fn ($q) => $q->with(['children' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('name')]));
-        $query->when($request->boolean('with_brands'), fn ($q) => $q->with(['brands' => fn ($q) => $q->where('is_active', true)]));
 
         $categories = $query->get();
 
@@ -35,7 +34,6 @@ class CategoryController extends Controller
             return $this->error('Category not found', 404);
         }
 
-        $category->load(['brands' => fn ($q) => $q->where('is_active', true)]);
         if (request()->boolean('with_children')) {
             $category->load(['children' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')->orderBy('name')]);
         }

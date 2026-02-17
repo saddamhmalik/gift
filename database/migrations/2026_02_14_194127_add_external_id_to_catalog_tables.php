@@ -14,12 +14,6 @@ return new class extends Migration
         Schema::table('categories', function (Blueprint $table) {
             $table->string('external_id')->nullable()->unique()->after('id');
         });
-        Schema::table('brands', function (Blueprint $table) {
-            $table->string('external_id')->nullable()->unique()->after('id');
-        });
-        Schema::table('vouchers', function (Blueprint $table) {
-            $table->string('external_id')->nullable()->unique()->after('id');
-        });
     }
 
     /**
@@ -28,12 +22,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            $table->dropColumn('external_id');
-        });
-        Schema::table('brands', function (Blueprint $table) {
-            $table->dropColumn('external_id');
-        });
-        Schema::table('vouchers', function (Blueprint $table) {
             $table->dropColumn('external_id');
         });
     }
