@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            $table->boolean('meta_index')->nullable()->after('subcategories_count');
+            $table->boolean('meta_index')->nullable()->after('offer_description');
             $table->string('meta_keyword', 500)->nullable()->after('meta_index');
             $table->string('page_title', 255)->nullable()->after('meta_keyword');
             $table->text('meta_description')->nullable()->after('page_title');
