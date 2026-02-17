@@ -46,7 +46,9 @@
                 <tbody class="divide-y divide-slate-100">
                     @forelse($categories as $cat)
                     <tr class="transition-colors hover:bg-slate-50/50">
-                        <td class="px-5 py-4 text-sm font-medium text-slate-800">{{ $cat->name }}</td>
+                        <td class="px-5 py-4 text-sm font-medium text-slate-800">
+                            <a href="{{ route('admin.categories.show', $cat) }}" class="text-slate-800 hover:underline">{{ $cat->name }}</a>
+                        </td>
                         <td class="px-5 py-4 text-sm text-slate-600">{{ $cat->slug }}</td>
                         <td class="px-5 py-4 text-sm text-slate-500">{{ $cat->url ?? '—' }}</td>
                         <td class="px-5 py-4 text-sm text-slate-500">{{ $cat->parent?->name ?? '—' }}</td>
@@ -60,7 +62,8 @@
                                 <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">Inactive</span>
                             @endif
                         </td>
-                        <td class="px-5 py-4 text-right">
+                        <td class="px-5 py-4 text-right flex gap-2 justify-end">
+                            <a href="{{ route('admin.categories.show', $cat) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm transition-all hover:bg-slate-50">View</a>
                             <a href="{{ route('admin.categories.edit', $cat) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 shadow-sm transition-all hover:bg-slate-50">Edit</a>
                         </td>
                     </tr>

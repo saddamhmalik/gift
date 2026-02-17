@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -164,12 +165,14 @@ class WoohooClient
         $baseString = 'GET&' . $encodedUrl;
         $signature = hash_hmac('sha512', $baseString, $this->clientSecret);
 
-        return Http::withHeaders(array_merge($this->getOAuthHeaders(), [
+        $result = Http::withHeaders(array_merge($this->getOAuthHeaders(), [
             'Authorization' => 'Bearer ' . $token,
             'Content-Type' => 'application/json',
             'Accept' => '*/*',
             'dateAtClient' => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
             'signature' => $signature,
         ]))->get($url);
+
+        return $result instanceof PromiseInterface ? $result->wait() : $result;
     }
 }

@@ -15,6 +15,8 @@ return [
         'verify' => '/oauth2/verify',
         'token' => '/oauth2/token',
         'categories' => '/rest/v3/catalog/categories',
+        'category_products' => '/rest/v3/catalog/categories',
+        'product' => '/rest/v3/catalog/products',
     ],
 
     'token_cache_ttl' => env('WOOHOO_TOKEN_CACHE_TTL', 604800),

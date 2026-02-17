@@ -29,6 +29,13 @@ class CategoryController extends Controller
         return view('admin.categories.index', compact('categories'));
     }
 
+    public function show(Category $category): View
+    {
+        $category->load(['parent', 'children' => fn ($q) => $q->withCount('products'), 'products']);
+
+        return view('admin.categories.show', compact('category'));
+    }
+
     public function sync(WoohooCategorySyncService $sync): RedirectResponse
     {
         $result = $sync->sync(false);

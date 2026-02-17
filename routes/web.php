@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,7 +26,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('categories/sync', [CategoryController::class, 'sync'])->name('categories.sync');
         Route::get('categories/create', [CategoryController::class, 'create'])->name('categories.create');
         Route::post('categories', [CategoryController::class, 'store'])->name('categories.store');
-        Route::get('categories/{category}', [CategoryController::class, 'edit'])->name('categories.edit');
+        Route::get('categories/{category}', [CategoryController::class, 'show'])->name('categories.show');
+        Route::get('categories/{category}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
         Route::put('categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+        Route::get('products', [ProductController::class, 'index'])->name('products.index');
+        Route::get('products/{product}', [ProductController::class, 'show'])->name('products.show');
+        Route::post('products/sync', [ProductController::class, 'sync'])->name('products.sync');
+        Route::post('products/sync-details', [ProductController::class, 'syncDetails'])->name('products.sync-details');
     });
 });

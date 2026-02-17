@@ -22,6 +22,10 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                     Categories
                 </a>
+                <a href="{{ route('admin.products.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 transition-all duration-200 {{ request()->routeIs('admin.products.*') ? 'bg-slate-800/80 text-white shadow-sm' : 'hover:bg-slate-800/50 hover:text-slate-200' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8 4-8-4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    Products
+                </a>
                 <a href="{{ route('admin.profile.edit') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 transition-all duration-200 {{ request()->routeIs('admin.profile.*') ? 'bg-slate-800/80 text-white shadow-sm' : 'hover:bg-slate-800/50 hover:text-slate-200' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                     Profile
@@ -36,6 +40,7 @@
                         <span class="text-sm text-slate-500">{{ $admin->name }}</span>
                     @endif
                     <a href="{{ route('admin.dashboard') }}" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Dashboard</a>
+                    <a href="{{ route('admin.products.index') }}" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Products</a>
                     <a href="{{ route('admin.profile.edit') }}" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Profile</a>
                     <form action="{{ route('admin.logout') }}" method="POST" class="inline">
                         @csrf
