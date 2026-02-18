@@ -2,9 +2,7 @@
 
 namespace App\Services\Catalog;
 
-use App\Http\Resources\V1\CategoryResource;
 use App\Repositories\CategoryRepository;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Cache;
 
 class CategoryService
@@ -16,13 +14,11 @@ class CategoryService
         protected CategoryRepository $repository
     ) {}
 
-    public function getParentCategoriesWithSubcategories(): AnonymousResourceCollection
+    public function getParentCategoriesWithSubcategories()
     {
-        $data = Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
             return $this->repository->getParentCategoriesWithSubcategories();
         });
-
-        return CategoryResource::collection($data);
     }
 
     public function getBySlug(string $slug)

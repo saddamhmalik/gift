@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\Controller;
+use App\Http\Resources\V1\UserResource;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,7 +35,7 @@ class AuthController extends Controller
         $token = $user->createToken('api')->plainTextToken;
 
         return $this->success([
-            'user' => $this->userResponse($user),
+            'user' => new UserResource($user),
             'token' => $token,
             'token_type' => 'Bearer',
         ], 'Registered successfully', 201);
@@ -59,7 +60,7 @@ class AuthController extends Controller
         $token = $user->createToken('api')->plainTextToken;
 
         return $this->success([
-            'user' => $this->userResponse($user),
+            'user' => new UserResource($user),
             'token' => $token,
             'token_type' => 'Bearer',
         ]);
@@ -97,7 +98,7 @@ class AuthController extends Controller
         $token = $user->createToken('api')->plainTextToken;
 
         return $this->success([
-            'user' => $this->userResponse($user),
+            'user' => new UserResource($user),
             'token' => $token,
             'token_type' => 'Bearer',
         ]);
@@ -123,7 +124,7 @@ class AuthController extends Controller
         $token = $user->createToken('api')->plainTextToken;
 
         return $this->success([
-            'user' => $this->userResponse($user),
+            'user' => new UserResource($user),
             'token' => $token,
             'token_type' => 'Bearer',
         ]);
@@ -137,17 +138,6 @@ class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return $this->success($this->userResponse($request->user()));
-    }
-
-    private function userResponse($user): array
-    {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'avatar' => $user->avatar,
-        ];
+        return $this->success(new UserResource($request->user()));
     }
 }

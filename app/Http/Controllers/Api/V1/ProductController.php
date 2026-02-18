@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\Controller;
+use App\Http\Resources\V1\ProductDetailResource;
+use App\Http\Resources\V1\ProductResource;
 use App\Models\Product;
 use App\Services\Catalog\ProductService;
 use Illuminate\Http\JsonResponse;
@@ -17,37 +19,42 @@ class ProductController extends Controller
     public function hotDeals(Request $request): JsonResponse
     {
         $limit = min((int) $request->get('limit', 20), 50);
-        return $this->success($this->productService->getHotDeals($limit));
+        $products = $this->productService->getHotDeals($limit);
+        return $this->success(ProductResource::collection($products));
     }
 
     public function trending(Request $request): JsonResponse
     {
         $limit = min((int) $request->get('limit', 20), 50);
-        return $this->success($this->productService->getTrending($limit));
+        $products = $this->productService->getTrending($limit);
+        return $this->success(ProductResource::collection($products));
     }
 
     public function bestSellers(Request $request): JsonResponse
     {
         $limit = min((int) $request->get('limit', 20), 50);
-        return $this->success($this->productService->getBestSellers($limit));
+        $products = $this->productService->getBestSellers($limit);
+        return $this->success(ProductResource::collection($products));
     }
 
     public function featured(Request $request): JsonResponse
     {
         $limit = min((int) $request->get('limit', 20), 50);
-        return $this->success($this->productService->getFeatured($limit));
+        $products = $this->productService->getFeatured($limit);
+        return $this->success(ProductResource::collection($products));
     }
 
     public function newArrivals(Request $request): JsonResponse
     {
         $limit = min((int) $request->get('limit', 20), 50);
         $days = min((int) $request->get('days', 30), 90);
-        return $this->success($this->productService->getNewArrivals($limit, $days));
+        $products = $this->productService->getNewArrivals($limit, $days);
+        return $this->success(ProductResource::collection($products));
     }
 
     public function show(Product $product): JsonResponse
     {
-        $result = $this->productService->getById($product);
-        return $this->success($result);
+        $product = $this->productService->getById($product);
+        return $this->success(new ProductDetailResource($product));
     }
 }

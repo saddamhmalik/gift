@@ -2,11 +2,9 @@
 
 namespace App\Services\Catalog;
 
-use App\Http\Resources\V1\ProductDetailResource;
-use App\Http\Resources\V1\ProductResource;
 use App\Models\Product;
 use App\Repositories\ProductRepository;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class ProductService
@@ -22,50 +20,46 @@ class ProductService
         protected ProductRepository $repository
     ) {}
 
-    public function getHotDeals(int $limit = self::DEFAULT_LIMIT): AnonymousResourceCollection
+    public function getHotDeals(int $limit = self::DEFAULT_LIMIT): Collection
     {
         $key = "api:products:hot_deals:{$limit}";
-        $products = Cache::remember($key, self::CACHE_TTL_HOT_DEALS, fn () => $this->repository->getHotDeals($limit));
-        return ProductResource::collection($products);
+        return Cache::remember($key, self::CACHE_TTL_HOT_DEALS, fn () => $this->repository->getHotDeals($limit));
     }
 
-    public function getTrending(int $limit = self::DEFAULT_LIMIT): AnonymousResourceCollection
+    public function getTrending(int $limit = self::DEFAULT_LIMIT): Collection
     {
         $key = "api:products:trending:{$limit}";
-        $products = Cache::remember($key, self::CACHE_TTL_TRENDING, fn () => $this->repository->getTrending($limit));
-        return ProductResource::collection($products);
+        return Cache::remember($key, self::CACHE_TTL_TRENDING, fn () => $this->repository->getTrending($limit));
     }
 
-    public function getBestSellers(int $limit = self::DEFAULT_LIMIT): AnonymousResourceCollection
+    public function getBestSellers(int $limit = self::DEFAULT_LIMIT): Collection
     {
         $key = "api:products:best_sellers:{$limit}";
-        $products = Cache::remember($key, self::CACHE_TTL_BEST_SELLERS, fn () => $this->repository->getBestSellers($limit));
-        return ProductResource::collection($products);
+        return Cache::remember($key, self::CACHE_TTL_BEST_SELLERS, fn () => $this->repository->getBestSellers($limit));
     }
 
-    public function getFeatured(int $limit = self::DEFAULT_LIMIT): AnonymousResourceCollection
+    public function getFeatured(int $limit = self::DEFAULT_LIMIT): Collection
     {
         $key = "api:products:featured:{$limit}";
-        $products = Cache::remember($key, self::CACHE_TTL_FEATURED, fn () => $this->repository->getFeatured($limit));
-        return ProductResource::collection($products);
+        return Cache::remember($key, self::CACHE_TTL_FEATURED, fn () => $this->repository->getFeatured($limit));
     }
 
-    public function getNewArrivals(int $limit = self::DEFAULT_LIMIT, int $days = 30): AnonymousResourceCollection
+    public function getNewArrivals(int $limit = self::DEFAULT_LIMIT, int $days = 30): Collection
     {
         $key = "api:products:new_arrivals:{$limit}:{$days}";
-        $products = Cache::remember($key, self::CACHE_TTL_NEW_ARRIVALS, fn () => $this->repository->getNewArrivals($limit, $days));
-        return ProductResource::collection($products);
+        return Cache::remember($key, self::CACHE_TTL_NEW_ARRIVALS, fn () => $this->repository->getNewArrivals($limit, $days));
     }
 
-    public function getById(Product $product): ProductDetailResource
+    public function getById(Product $product): Product
     {
         $product->loadMissing(['category', 'tags']);
-        if (!$product->is_active) {
+        if (! $product->is_active) {
             abort(404);
         }
         $this->repository->incrementViews($product);
         $product->refresh();
-        return new ProductDetailResource($product);
+
+        return $product;
     }
 
     public static function clearProductListCache(): void
