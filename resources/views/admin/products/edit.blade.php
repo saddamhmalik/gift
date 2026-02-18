@@ -68,13 +68,27 @@
                     </div>
                 </div>
                 <div class="sm:col-span-2 border-t border-slate-200 pt-6">
-                    <label for="tags" class="block text-sm font-medium text-slate-700 mb-1.5">Tags</label>
-                    <select id="tags" name="tag_ids[]" multiple class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-slate-800" size="6">
+                    <label class="block text-sm font-medium text-slate-700 mb-3">Tags</label>
+                    <p class="text-xs text-slate-500 mb-3">Select tags to assign to this product</p>
+                    <div class="flex flex-wrap gap-2">
+                        @php
+                            $selectedTagIds = old('tag_ids', $product->tags->pluck('id')->toArray());
+                        @endphp
                         @foreach($tags as $tag)
-                            <option value="{{ $tag->id }}" {{ in_array($tag->id, old('tag_ids', $product->tags->pluck('id')->toArray())) ? 'selected' : '' }}>{{ $tag->name }}</option>
+                            <label class="inline-flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2 transition-all
+                                {{ in_array($tag->id, $selectedTagIds) ? 'border-slate-800 bg-slate-100' : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50' }}">
+                                <input type="checkbox" name="tag_ids[]" value="{{ $tag->id }}" {{ in_array($tag->id, $selectedTagIds) ? 'checked' : '' }}
+                                    class="h-4 w-4 rounded border-slate-300 text-slate-800 focus:ring-slate-500">
+                                @if($tag->color)
+                                    <span class="h-3 w-3 shrink-0 rounded-full border border-slate-200" style="background-color: {{ $tag->color }}"></span>
+                                @endif
+                                <span class="text-sm font-medium text-slate-700">{{ $tag->name }}</span>
+                            </label>
                         @endforeach
-                    </select>
-                    <p class="mt-1 text-xs text-slate-500">Hold Ctrl/Cmd to select multiple</p>
+                    </div>
+                    @if($tags->isEmpty())
+                        <p class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">No tags available. <a href="{{ route('admin.tags.create') }}" class="font-medium underline hover:no-underline">Create tags</a> first.</p>
+                    @endif
                     @error('tag_ids')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
             </div>
