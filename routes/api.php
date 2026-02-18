@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\WebhookPaymentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -32,10 +34,22 @@ Route::prefix('v1')->group(function () {
         Route::post('/google', [AuthController::class, 'google']);
     });
 
-    // Protected APIs (auth required - checkout, orders, payments)
+    // Protected: Orders & payment (logged-in user only)
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
-        // Placeholder for future: checkout, orders, payments
+
+        // Order APIs (one product per order; requires login)
+        Route::post('/order', [OrderController::class, 'store']);
+        Route::get('/order', [OrderController::class, 'show']);
+        Route::get('/order/{order}', [OrderController::class, 'showById']);
+        Route::post('/order/item', [OrderController::class, 'setItem']);
+        Route::put('/order/item', [OrderController::class, 'updateItem']);
+        Route::delete('/order/item', [OrderController::class, 'clearItem']);
+
+        // Placeholder: checkout, initiate payment (when gateway is integrated)
     });
+
+    // Webhook: payment success → fulfill via Woohoo (SVC). Server-to-server; secure with gateway webhook secret.
+    Route::post('/webhooks/payment-success', [WebhookPaymentController::class, 'paymentSuccess']);
 });

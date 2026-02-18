@@ -19,8 +19,10 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $v = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:100',
+            'last_name' => 'required|string|max:100',
             'email' => 'required|email|unique:users,email',
+            'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
         ]);
         if ($v->fails()) {
@@ -28,8 +30,10 @@ class AuthController extends Controller
         }
 
         $user = $this->authService->register(
-            $request->name,
+            $request->first_name,
+            $request->last_name,
             $request->email,
+            $request->phone,
             $request->password
         );
         $token = $user->createToken('api')->plainTextToken;

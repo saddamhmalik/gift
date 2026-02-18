@@ -1,5 +1,7 @@
 # React + Google (Gmail) Login Integration
 
+> **Consolidated docs:** See [DOCUMENTATION.md](DOCUMENTATION.md#3-react--google-gmail-login) for this guide and all other documentation in one place.
+
 This guide explains how to integrate Google (Gmail) login in a React frontend with the Gift Box Laravel API using Sanctum tokens.
 
 ## Overview

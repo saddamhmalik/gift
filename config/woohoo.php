@@ -17,7 +17,11 @@ return [
         'categories' => '/rest/v3/catalog/categories',
         'category_products' => '/rest/v3/catalog/categories',
         'product' => '/rest/v3/catalog/products',
+        'orders' => '/rest/v3/orders',
+        'order_status' => '/rest/v3/orders',
     ],
+
+    'org_short_code' => env('WOOHOO_ORG_SHORT_CODE', 'ONEZERO'),
 
     'token_cache_ttl' => env('WOOHOO_TOKEN_CACHE_TTL', 604800),
 

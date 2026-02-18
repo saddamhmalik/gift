@@ -6,7 +6,8 @@
   },
   "variable": [
     { "key": "base_url", "value": "http://localhost:8000" },
-    { "key": "token", "value": "" }
+    { "key": "token", "value": "" },
+    { "key": "order_token", "value": "" }
   ],
   "item": [
     {
@@ -66,6 +67,75 @@
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/v1/products/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Order APIs (Protected – requires login)",
+      "item": [
+        {
+          "name": "Create/Get Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{base_url}}/api/v1/order"
+          }
+        },
+        {
+          "name": "Get Order",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/v1/order"
+          }
+        },
+        {
+          "name": "Set Order Item (unit_price)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"product_id\":1,\"quantity\":2,\"unit_price\":500}" },
+            "url": "{{base_url}}/api/v1/order/item"
+          }
+        },
+        {
+          "name": "Set Order Item (selected_denomination)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"product_id\":1,\"quantity\":1,\"selected_denomination\":\"1000\"}" },
+            "url": "{{base_url}}/api/v1/order/item"
+          }
+        },
+        {
+          "name": "Update Order Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"quantity\":3}" },
+            "url": "{{base_url}}/api/v1/order/item"
+          }
+        },
+        {
+          "name": "Clear Order Item",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/api/v1/order/item"
           }
         }
       ]
@@ -136,7 +206,7 @@
       ]
     },
     {
-      "name": "Protected APIs",
+      "name": "Protected APIs (auth required)",
       "item": [
         {
           "name": "Get Current User",

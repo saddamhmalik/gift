@@ -12,11 +12,14 @@ class AuthService
     private const OTP_LENGTH = 6;
     private const OTP_EXPIRY_MINUTES = 10;
 
-    public function register(string $name, string $email, string $password): User
+    public function register(string $firstName, string $lastName, string $email, string $phone, string $password): User
     {
         $user = User::create([
-            'name' => $name,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'name' => trim($firstName . ' ' . $lastName),
             'email' => $email,
+            'phone' => $phone,
             'password' => Hash::make($password),
         ]);
 

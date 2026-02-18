@@ -98,6 +98,7 @@ return [
 
     'waits' => [
         'redis:default' => 60,
+        'redis:woohoo-order-poll' => 120,
         'redis:woohoo-categories' => 300,
         'redis:woohoo-products' => 600,
         'redis:woohoo-product-details' => 900,
@@ -249,6 +250,18 @@ return [
             'timeout' => 3600,
             'nice' => 0,
         ],
+        'supervisor-woohoo-order-poll' => [
+            'connection' => 'redis',
+            'queue' => ['woohoo-order-poll'],
+            'balance' => 'simple',
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 2,
+            'timeout' => 360,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [
@@ -267,6 +280,9 @@ return [
             'supervisor-woohoo-product-details' => [
                 'maxProcesses' => 4,
             ],
+            'supervisor-woohoo-order-poll' => [
+                'maxProcesses' => 2,
+            ],
         ],
 
         'local' => [
@@ -280,6 +296,9 @@ return [
                 'maxProcesses' => 1,
             ],
             'supervisor-woohoo-product-details' => [
+                'maxProcesses' => 1,
+            ],
+            'supervisor-woohoo-order-poll' => [
                 'maxProcesses' => 1,
             ],
         ],

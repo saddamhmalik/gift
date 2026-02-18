@@ -175,4 +175,57 @@ class WoohooClient
 
         return $result instanceof PromiseInterface ? $result->wait() : $result;
     }
+
+    /**
+     * POST request to Woohoo REST v3 (e.g. order create).
+     * OAuth2.0 signature per Qwikcilver docs: sort body by keys, base string = POST&encoded_url&encoded_body, HMAC-SHA512.
+     *
+     * @param  array<string, mixed>  $body
+     * @return \Illuminate\Http\Client\Response
+     */
+    public function post(string $path, array $body)
+    {
+        $token = $this->getBearerToken();
+        if (! $token) {
+            return Http::response(null, 401);
+        }
+
+        $url = $this->baseUrl . $path;
+        $sortedBody = $this->sortJsonKeysRecursive($body);
+        $bodyJson = json_encode($sortedBody, JSON_UNESCAPED_SLASHES);
+        $encodedUrl = rawurlencode($url);
+        $encodedBody = rawurlencode($bodyJson);
+        $baseString = 'POST&' . $encodedUrl . '&' . $encodedBody;
+        $signature = hash_hmac('sha512', $baseString, $this->clientSecret);
+
+        $result = Http::withHeaders(array_merge($this->getOAuthHeaders(), [
+            'Authorization' => 'Bearer ' . $token,
+            'Content-Type' => 'application/json',
+            'Accept' => '*/*',
+            'dateAtClient' => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
+            'signature' => $signature,
+        ]))->withBody($bodyJson, 'application/json')->post($url);
+
+        if (method_exists($result, 'wait')) {
+            $result = $result->wait();
+        }
+        return $result;
+    }
+
+    /**
+     * Sort array keys recursively (ASCII order) per Woohoo OAuth2.0 signature spec.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function sortJsonKeysRecursive(array $data): array
+    {
+        $sorted = [];
+        foreach ($data as $k => $v) {
+            $sorted[$k] = is_array($v) ? $this->sortJsonKeysRecursive($v) : $v;
+        }
+        ksort($sorted);
+
+        return $sorted;
+    }
 }
