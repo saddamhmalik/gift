@@ -57,11 +57,11 @@ class ProductService
         return ProductResource::collection($products);
     }
 
-    public function getBySlug(string $slug): ?ProductDetailResource
+    public function getById(Product $product): ProductDetailResource
     {
-        $product = $this->repository->findBySlug($slug);
-        if (!$product) {
-            return null;
+        $product->loadMissing(['category', 'tags']);
+        if (!$product->is_active) {
+            abort(404);
         }
         $this->repository->incrementViews($product);
         $product->refresh();

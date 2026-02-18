@@ -65,7 +65,7 @@
           "name": "Product Detail",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/api/v1/products/{{slug}}"
+            "url": "{{base_url}}/api/v1/products/1"
           }
         }
       ]

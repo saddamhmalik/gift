@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\Controller;
+use App\Models\Product;
 use App\Services\Catalog\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,12 +45,9 @@ class ProductController extends Controller
         return $this->success($this->productService->getNewArrivals($limit, $days));
     }
 
-    public function show(string $slug): JsonResponse
+    public function show(Product $product): JsonResponse
     {
-        $product = $this->productService->getBySlug($slug);
-        if (!$product) {
-            return $this->error('Product not found', 404);
-        }
-        return $this->success($product);
+        $result = $this->productService->getById($product);
+        return $this->success($result);
     }
 }

@@ -21,7 +21,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/products/best-sellers', [ProductController::class, 'bestSellers']);
     Route::get('/products/featured', [ProductController::class, 'featured']);
     Route::get('/products/new-arrivals', [ProductController::class, 'newArrivals']);
-    Route::get('/products/{slug}', [ProductController::class, 'show']);
+    Route::get('/products/{product}', [ProductController::class, 'show']);
 
     // Auth APIs (public routes for login/register)
     Route::prefix('auth')->group(function () {
