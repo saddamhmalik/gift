@@ -1,11 +1,18 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Search, Sparkles, Shield, Zap } from 'lucide-react'
+import { useNavigate, Link } from 'react-router-dom'
+import { Search, Zap, Shield, Star, ArrowRight, Sparkles } from 'lucide-react'
+
+const STATS = [
+  { value: '500+',  label: 'Brands'          },
+  { value: 'Up to 2%', label: 'Rewards back' },
+  { value: '₹1',   label: 'Per point'        },
+  { value: '24/7', label: 'Instant delivery' },
+]
 
 const BADGES = [
-  { Icon: Zap,      text: 'Instant Delivery'   },
-  { Icon: Shield,   text: 'Secure & Trusted'   },
-  { Icon: Sparkles, text: 'Earn PayFlex Points' },
+  { Icon: Zap,      text: 'Instant Delivery',    color: 'text-amber-400' },
+  { Icon: Shield,   text: 'Secure Payments',      color: 'text-emerald-400' },
+  { Icon: Star,     text: 'Earn PayFlex Points',  color: 'text-primary-400' },
 ]
 
 export default function HeroSection() {
@@ -18,65 +25,126 @@ export default function HeroSection() {
   }
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-500 to-amber-400 text-white">
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] rounded-full bg-white/5 blur-3xl" />
-        {/* Floating emoji decorations */}
-        <div className="absolute top-8  left-[8%]  text-5xl opacity-20 animate-bounce" style={{animationDelay:'0.2s',animationDuration:'3s'}}>🎁</div>
-        <div className="absolute top-16 right-[10%] text-4xl opacity-15 animate-bounce" style={{animationDelay:'1s',  animationDuration:'4s'}}>🎉</div>
-        <div className="absolute bottom-12 left-[15%] text-3xl opacity-15 animate-bounce" style={{animationDelay:'0.5s',animationDuration:'3.5s'}}>✨</div>
-        <div className="absolute bottom-8  right-[8%] text-4xl opacity-20 animate-bounce" style={{animationDelay:'1.5s',animationDuration:'2.8s'}}>💝</div>
+    <section className="relative overflow-hidden bg-surface-950 grain min-h-[calc(100vh-4rem)] flex items-center">
+
+      {/* ── Mesh gradient blobs ── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Main purple blob */}
+        <div className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-primary-600/30 blur-[120px] animate-float-slow" />
+        {/* Brand orange blob */}
+        <div className="absolute -bottom-40 -right-20 w-[500px] h-[500px] rounded-full bg-brand/20 blur-[120px] animate-float" style={{animationDelay:'3s'}} />
+        {/* Indigo accent */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[300px] rounded-full bg-indigo-900/40 blur-[100px]" />
+        {/* Grid overlay */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)',
+          backgroundSize: '60px 60px'
+        }} />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28 text-center">
-        {/* Pre-title */}
-        <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-white/30">
-          <Sparkles size={14} />
+      {/* ── Floating card decorations ── */}
+      <div className="absolute top-32 right-[8%] hidden lg:block animate-float opacity-80" style={{animationDelay:'1s'}}>
+        <div className="bg-white/8 backdrop-blur-md border border-white/12 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-xl">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-lg">🎁</div>
+          <div>
+            <p className="text-white text-xs font-semibold">Amazon Pay</p>
+            <p className="text-emerald-400 text-xs font-bold">+₹50 points</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute bottom-32 right-[12%] hidden lg:block animate-float opacity-70" style={{animationDelay:'2.5s'}}>
+        <div className="bg-white/8 backdrop-blur-md border border-white/12 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-xl">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-lg">⭐</div>
+          <div>
+            <p className="text-white text-xs font-semibold">PayFlex Points</p>
+            <p className="text-primary-400 text-xs font-bold">1 Point = ₹1</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute top-40 left-[6%] hidden xl:block animate-float opacity-60" style={{animationDelay:'4s'}}>
+        <div className="bg-white/8 backdrop-blur-md border border-white/12 rounded-2xl px-4 py-3 shadow-xl">
+          <p className="text-slate-400 text-[10px] mb-0.5">Total saved this month</p>
+          <p className="text-white text-base font-extrabold">₹2,450</p>
+        </div>
+      </div>
+
+      {/* ── Main content ── */}
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center w-full">
+
+        {/* Eyebrow */}
+        <div className="inline-flex items-center gap-2 bg-primary-500/15 border border-primary-500/30 text-primary-300 text-xs font-semibold px-4 py-2 rounded-full mb-8 backdrop-blur-sm">
+          <Sparkles size={12} className="text-primary-400" />
           India's Smart Payments &amp; Rewards Platform
+          <Sparkles size={12} className="text-primary-400" />
         </div>
 
         {/* Headline */}
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight mb-4 tracking-tight">
-          Pay Smart. Earn More.<br className="hidden sm:block" />
-          <span className="relative inline-block">
-            Every Time.
-            <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none">
-              <path d="M2 8 Q75 2 150 8 Q225 14 298 8" stroke="rgba(255,255,255,0.6)" strokeWidth="3" strokeLinecap="round" fill="none"/>
-            </svg>
+        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.05] mb-6">
+          <span className="text-white">Pay Smart.</span>
+          <br />
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary-400 via-violet-300 to-brand animate-gradient bg-animate" style={{backgroundSize:'200%'}}>
+            Earn More.
           </span>
         </h1>
-        <p className="text-lg sm:text-xl text-white/80 max-w-xl mx-auto mb-10">
-          Browse 500+ gift cards from top brands and earn PayFlex Points on every purchase. 1 Point = ₹1. Instant delivery, zero hassle.
+
+        <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+          Browse 500+ gift cards from India's top brands. Earn up to <span className="text-white font-semibold">2% PayFlex Points</span> on every purchase — redeemable instantly. <span className="text-primary-400 font-semibold">1 Point = ₹1.</span>
         </p>
 
         {/* Search */}
-        <form onSubmit={handleSearch} className="max-w-lg mx-auto flex gap-2 mb-12">
-          <div className="flex-1 flex items-center gap-2 bg-white rounded-2xl px-4 py-3 shadow-xl">
-            <Search size={18} className="text-gray-400 flex-shrink-0" />
+        <form onSubmit={handleSearch} className="max-w-xl mx-auto mb-5">
+          <div className="flex items-center gap-2 bg-white/8 border border-white/12 hover:border-primary-500/50 focus-within:border-primary-500/70 focus-within:bg-white/12 rounded-2xl px-4 py-3 transition-all duration-300 shadow-xl shadow-black/30">
+            <Search size={18} className="text-slate-500 flex-shrink-0" />
             <input
               type="text"
               placeholder="Search Amazon, Flipkart, Swiggy…"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              className="flex-1 outline-none text-gray-800 placeholder-gray-400 bg-transparent text-sm"
+              className="flex-1 outline-none bg-transparent text-white placeholder-slate-500 text-sm"
             />
+            <button
+              type="submit"
+              className="px-5 py-2 bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white rounded-xl font-semibold text-sm transition-all shadow-md shadow-primary-900/40 flex-shrink-0"
+            >
+              Search
+            </button>
           </div>
-          <button type="submit" className="px-6 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl font-semibold text-sm shadow-xl transition-colors flex-shrink-0">
-            Search
-          </button>
         </form>
 
-        {/* Badges */}
-        <div className="flex flex-wrap items-center justify-center gap-4">
-          {BADGES.map(({ Icon, text }) => (
-            <div key={text} className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/20 text-sm">
-              <Icon size={15} className="text-white" />
-              <span className="font-medium">{text}</span>
+        {/* Quick links */}
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-14 text-xs">
+          {['Amazon Pay', 'Flipkart', 'BookMyShow', 'Uber', 'Swiggy'].map(b => (
+            <Link key={b} to={`/categories`} className="px-3 py-1.5 rounded-full bg-white/6 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-all">
+              {b}
+            </Link>
+          ))}
+        </div>
+
+        {/* Stats row */}
+        <div className="flex flex-wrap items-center justify-center gap-8 mb-12">
+          {STATS.map(({ value, label }) => (
+            <div key={label} className="text-center">
+              <p className="text-2xl font-extrabold text-white">{value}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Trust badges */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {BADGES.map(({ Icon, text, color }) => (
+            <div key={text} className="flex items-center gap-2 bg-white/5 border border-white/8 backdrop-blur-sm px-4 py-2 rounded-xl text-sm">
+              <Icon size={14} className={color} />
+              <span className="text-slate-300 font-medium">{text}</span>
+            </div>
+          ))}
+          <Link to="/loyalty" className="flex items-center gap-2 bg-brand/10 border border-brand/25 px-4 py-2 rounded-xl text-sm text-brand hover:bg-brand/20 transition-colors">
+            <Star size={14} fill="currentColor" />
+            <span className="font-semibold">Loyalty Program</span>
+            <ArrowRight size={12} />
+          </Link>
         </div>
       </div>
     </section>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Zap, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Zap, Loader2, ArrowRight } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function RegisterPage() {
@@ -30,82 +30,95 @@ export default function RegisterPage() {
 
   const fieldErr = (k) => errors[k]?.[0]
 
+  const inputClass = (k) =>
+    `w-full bg-white/8 border text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${
+      fieldErr(k) ? 'border-red-500/50 focus:border-red-500/60' : 'border-white/12 focus:border-primary-500/60'
+    }`
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-amber-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
+    <div className="min-h-screen bg-surface-950 flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Background blobs */}
+      <div className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full bg-primary-600/20 blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] rounded-full bg-brand/15 blur-[120px] pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl shadow-black/40">
+
+          {/* Logo */}
           <div className="text-center mb-7">
-            <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 items-center justify-center shadow-lg mb-4">
-              <Zap size={28} className="text-white" />
-            </div>
-            <p className="text-xl font-extrabold text-gray-900 mb-0.5">Pay<span className="text-primary-500">Flex</span></p>
-            <h1 className="text-lg font-bold text-gray-800">Create account</h1>
-            <p className="text-sm text-gray-500 mt-1">Join PayFlex — earn rewards on every purchase</p>
+            <Link to="/" className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-brand items-center justify-center shadow-glow-primary mb-4">
+              <Zap size={22} className="text-white" />
+            </Link>
+            <p className="text-2xl font-extrabold text-white mb-1">
+              Pay<span className="text-primary-400">Flex</span>
+            </p>
+            <p className="text-sm text-slate-400">Join PayFlex — earn rewards on every purchase</p>
           </div>
 
           {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
+            <div className="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">{error}</div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">First Name</label>
-                <input type="text" required value={form.first_name} onChange={set('first_name')} placeholder="John"
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all ${fieldErr('first_name') ? 'border-red-300' : 'border-gray-200'}`} />
-                {fieldErr('first_name') && <p className="text-xs text-red-500 mt-1">{fieldErr('first_name')}</p>}
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">First Name</label>
+                <input type="text" required value={form.first_name} onChange={set('first_name')} placeholder="John" className={inputClass('first_name')} />
+                {fieldErr('first_name') && <p className="text-xs text-red-400 mt-1">{fieldErr('first_name')}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Last Name</label>
-                <input type="text" required value={form.last_name} onChange={set('last_name')} placeholder="Doe"
-                  className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all ${fieldErr('last_name') ? 'border-red-300' : 'border-gray-200'}`} />
-                {fieldErr('last_name') && <p className="text-xs text-red-500 mt-1">{fieldErr('last_name')}</p>}
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Last Name</label>
+                <input type="text" required value={form.last_name} onChange={set('last_name')} placeholder="Doe" className={inputClass('last_name')} />
+                {fieldErr('last_name') && <p className="text-xs text-red-400 mt-1">{fieldErr('last_name')}</p>}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
-              <input type="email" required value={form.email} onChange={set('email')} placeholder="you@example.com"
-                className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all ${fieldErr('email') ? 'border-red-300' : 'border-gray-200'}`} />
-              {fieldErr('email') && <p className="text-xs text-red-500 mt-1">{fieldErr('email')}</p>}
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Email address</label>
+              <input type="email" required value={form.email} onChange={set('email')} placeholder="you@example.com" className={inputClass('email')} />
+              {fieldErr('email') && <p className="text-xs text-red-400 mt-1">{fieldErr('email')}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone</label>
-              <input type="tel" required value={form.phone} onChange={set('phone')} placeholder="+1 234 567 8901"
-                className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all ${fieldErr('phone') ? 'border-red-300' : 'border-gray-200'}`} />
-              {fieldErr('phone') && <p className="text-xs text-red-500 mt-1">{fieldErr('phone')}</p>}
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Phone <span className="text-slate-600">(E.g. +919999999999)</span></label>
+              <input type="tel" required value={form.phone} onChange={set('phone')} placeholder="+919999999999" className={inputClass('phone')} />
+              {fieldErr('phone') && <p className="text-xs text-red-400 mt-1">{fieldErr('phone')}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
               <div className="relative">
-                <input type={showPw ? 'text' : 'password'} required value={form.password} onChange={set('password')} placeholder="Min 8 characters"
-                  className={`w-full border rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all ${fieldErr('password') ? 'border-red-300' : 'border-gray-200'}`} />
-                <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <input type={showPw ? 'text' : 'password'} required value={form.password} onChange={set('password')} placeholder="Min 8 characters" className={inputClass('password')} />
+                <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              {fieldErr('password') && <p className="text-xs text-red-500 mt-1">{fieldErr('password')}</p>}
+              {fieldErr('password') && <p className="text-xs text-red-400 mt-1">{fieldErr('password')}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Confirm Password</label>
               <input type="password" required value={form.password_confirmation} onChange={set('password_confirmation')} placeholder="Repeat password"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all" />
+                className="w-full bg-white/8 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all" />
             </div>
 
             <button type="submit" disabled={loading}
-              className="btn-primary w-full !py-3 !text-base disabled:opacity-60 disabled:cursor-not-allowed">
-              {loading ? <><Loader2 size={16} className="animate-spin" /> Creating account…</> : 'Create Account'}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-violet-500 text-white font-bold text-sm transition-all shadow-md shadow-primary-900/40 disabled:opacity-50 disabled:cursor-not-allowed mt-2">
+              {loading
+                ? <><Loader2 size={16} className="animate-spin" /> Creating account…</>
+                : <><span>Create Account</span><ArrowRight size={15} /></>}
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
+          <p className="text-center text-sm text-slate-500 mt-6">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary-500 font-semibold hover:text-primary-600">Sign in</Link>
+            <Link to="/login" className="text-primary-400 font-semibold hover:text-primary-300">Sign in</Link>
           </p>
         </div>
+
+        <p className="text-center mt-5">
+          <Link to="/" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">← Back to PayFlex</Link>
+        </p>
       </div>
     </div>
   )

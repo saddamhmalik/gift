@@ -1,137 +1,201 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Gift, Search, User, LogOut, ChevronDown, Menu, X } from 'lucide-react'
+import { Zap, Search, User, LogOut, ChevronDown, Menu, X, ShoppingBag } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+
+const NAV_LINKS = [
+  { to: '/categories',  label: 'Categories' },
+  { to: '/hot-deals',   label: '🔥 Deals'   },
+  { to: '/trending',    label: 'Trending'   },
+  { to: '/new-arrivals',label: 'New'        },
+]
 
 export default function Navbar() {
   const { user, logout } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const [scrolled, setScrolled]       = useState(false)
-  const [menuOpen, setMenuOpen]       = useState(false)
+  const navigate  = useNavigate()
+  const location  = useLocation()
+  const [scrolled,     setScrolled]     = useState(false)
+  const [menuOpen,     setMenuOpen]     = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [searchVal, setSearchVal]     = useState('')
+  const [searchVal,    setSearchVal]    = useState('')
+  const [searchOpen,   setSearchOpen]   = useState(false)
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10)
+    const onScroll = () => setScrolled(window.scrollY > 8)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => { setMenuOpen(false) }, [location.pathname])
+  useEffect(() => { setMenuOpen(false); setSearchOpen(false) }, [location.pathname])
 
   const handleSearch = (e) => {
     e.preventDefault()
-    if (searchVal.trim()) navigate(`/search?q=${encodeURIComponent(searchVal.trim())}`)
+    if (searchVal.trim()) { navigate(`/search?q=${encodeURIComponent(searchVal.trim())}`); setSearchOpen(false) }
   }
 
-  const handleLogout = async () => {
-    await logout()
-    setUserMenuOpen(false)
-    navigate('/')
-  }
+  const handleLogout = async () => { await logout(); setUserMenuOpen(false); navigate('/') }
+
+  const isActive = (to) => location.pathname === to || location.pathname.startsWith(to + '/')
 
   return (
-    <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-md' : 'bg-white shadow-sm'}`}>
+    <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+      scrolled
+        ? 'bg-surface-950/95 backdrop-blur-xl shadow-lg shadow-black/20 border-b border-white/5'
+        : 'bg-surface-950/80 backdrop-blur-md'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm">
-              <Gift className="w-4.5 h-4.5 text-white" size={18} />
+          {/* ── Logo ── */}
+          <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 group">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-brand flex items-center justify-center shadow-glow-primary transition-transform group-hover:scale-105">
+              <Zap size={16} className="text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">
-              Pay<span className="text-primary-500">Flex</span>
+            <span className="text-lg font-extrabold text-white tracking-tight">
+              Pay<span className="text-primary-400">Flex</span>
             </span>
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
-            <Link to="/categories" className="hover:text-primary-500 transition-colors">Categories</Link>
-            <Link to="/hot-deals"  className="hover:text-primary-500 transition-colors text-red-500 font-semibold">🔥 Hot Deals</Link>
-            <Link to="/trending"   className="hover:text-primary-500 transition-colors">Trending</Link>
-            <Link to="/new-arrivals" className="hover:text-primary-500 transition-colors">New Arrivals</Link>
+          {/* ── Desktop nav ── */}
+          <nav className="hidden md:flex items-center gap-1 text-sm">
+            {NAV_LINKS.map(({ to, label }) => (
+              <Link
+                key={to}
+                to={to}
+                className={`px-3 py-2 rounded-lg font-medium transition-all duration-150 ${
+                  isActive(to)
+                    ? 'text-white bg-white/10'
+                    : 'text-slate-400 hover:text-white hover:bg-white/8'
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
           </nav>
 
-          {/* Right: search + auth */}
-          <div className="flex items-center gap-3">
-            {/* Search */}
-            <form onSubmit={handleSearch} className="hidden sm:flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2 text-sm focus-within:ring-2 focus-within:ring-primary-400 transition-all w-44 lg:w-64">
-              <Search size={15} className="text-gray-400 flex-shrink-0" />
-              <input
-                type="text"
-                placeholder="Search PayFlex…"
-                value={searchVal}
-                onChange={e => setSearchVal(e.target.value)}
-                className="bg-transparent outline-none flex-1 placeholder-gray-400 text-gray-700"
-              />
-            </form>
+          {/* ── Right cluster ── */}
+          <div className="flex items-center gap-2">
+
+            {/* Search — desktop */}
+            {searchOpen ? (
+              <form onSubmit={handleSearch} className="hidden sm:flex items-center gap-2 bg-white/10 border border-white/15 rounded-xl px-3 py-2 w-56 focus-within:border-primary-400 transition-all">
+                <Search size={14} className="text-slate-400 flex-shrink-0" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search PayFlex…"
+                  value={searchVal}
+                  onChange={e => setSearchVal(e.target.value)}
+                  className="bg-transparent outline-none flex-1 text-white placeholder-slate-500 text-sm"
+                />
+                <button type="button" onClick={() => setSearchOpen(false)} className="text-slate-500 hover:text-slate-300">
+                  <X size={14} />
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="hidden sm:flex w-9 h-9 rounded-xl bg-white/8 hover:bg-white/15 items-center justify-center text-slate-400 hover:text-white transition-all"
+                aria-label="Search"
+              >
+                <Search size={16} />
+              </button>
+            )}
 
             {/* Auth */}
             {user ? (
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(v => !v)}
-                  className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-primary-500 transition-colors"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/8 hover:bg-white/15 transition-all"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary-400 to-brand flex items-center justify-center text-white text-[10px] font-bold">
                     {(user.first_name?.[0] || user.name?.[0] || 'U').toUpperCase()}
                   </div>
-                  <span className="hidden lg:inline">{user.first_name || user.name?.split(' ')[0]}</span>
-                  <ChevronDown size={14} />
+                  <span className="hidden lg:inline text-sm font-medium text-slate-300">
+                    {user.first_name || user.name?.split(' ')[0]}
+                  </span>
+                  <ChevronDown size={13} className={`text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
-                    <Link to="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setUserMenuOpen(false)}>
-                      <User size={14} /> My Account
-                    </Link>
-                    <Link to="/orders" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setUserMenuOpen(false)}>
-                      <Gift size={14} /> My Orders
-                    </Link>
 
-                    <hr className="my-1 border-gray-100" />
-                    <button onClick={handleLogout} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-50">
-                      <LogOut size={14} /> Logout
-                    </button>
-                  </div>
+                {userMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-48 bg-surface-900 border border-white/10 rounded-2xl shadow-xl shadow-black/40 py-1.5 z-50 overflow-hidden">
+                      <div className="px-4 py-2.5 border-b border-white/8 mb-1">
+                        <p className="text-xs text-slate-500">Signed in as</p>
+                        <p className="text-sm font-semibold text-white truncate">{user.email}</p>
+                      </div>
+                      <Link to="/profile" onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-colors">
+                        <User size={14} /> My Account
+                      </Link>
+                      <Link to="/orders" onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-colors">
+                        <ShoppingBag size={14} /> My Orders
+                      </Link>
+                      <div className="my-1 border-t border-white/8" />
+                      <button onClick={handleLogout}
+                        className="flex items-center gap-2.5 w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors">
+                        <LogOut size={14} /> Sign Out
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             ) : (
               <div className="hidden sm:flex items-center gap-2">
-                <Link to="/login"    className="btn-secondary !px-4 !py-2 !text-xs">Login</Link>
-                <Link to="/register" className="btn-primary !px-4 !py-2 !text-xs">Sign Up</Link>
+                <Link to="/login"
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-all">
+                  Login
+                </Link>
+                <Link to="/register"
+                  className="px-4 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-primary-600 to-primary-500 text-white hover:from-primary-500 hover:to-primary-400 transition-all shadow-md shadow-primary-900/30">
+                  Sign Up
+                </Link>
               </div>
             )}
 
-            {/* Mobile menu toggle */}
-            <button className="md:hidden p-1.5 rounded-lg text-gray-600 hover:bg-gray-100" onClick={() => setMenuOpen(v => !v)}>
-              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            {/* Mobile toggle */}
+            <button
+              className="md:hidden w-9 h-9 rounded-xl bg-white/8 hover:bg-white/15 flex items-center justify-center text-slate-400 hover:text-white transition-all"
+              onClick={() => setMenuOpen(v => !v)}
+            >
+              {menuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* ── Mobile menu ── */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 space-y-2 shadow-lg">
-          <form onSubmit={handleSearch} className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2 text-sm mb-3">
-            <Search size={15} className="text-gray-400" />
-            <input type="text" placeholder="Search PayFlex…" value={searchVal} onChange={e => setSearchVal(e.target.value)} className="bg-transparent outline-none flex-1 placeholder-gray-400" />
+        <div className="md:hidden bg-surface-950/98 backdrop-blur-xl border-t border-white/8 px-4 py-4 space-y-1">
+          {/* Mobile search */}
+          <form onSubmit={handleSearch} className="flex items-center gap-2 bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 mb-3">
+            <Search size={14} className="text-slate-500" />
+            <input type="text" placeholder="Search PayFlex…" value={searchVal} onChange={e => setSearchVal(e.target.value)} className="bg-transparent outline-none flex-1 text-white placeholder-slate-500 text-sm" />
           </form>
-          {[['/', 'Home'], ['/categories', 'Categories'], ['/hot-deals', '🔥 Hot Deals'], ['/trending', 'Trending'], ['/new-arrivals', 'New Arrivals']].map(([to, label]) => (
-            <Link key={to} to={to} className="block py-2 px-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">{label}</Link>
+
+          {NAV_LINKS.map(({ to, label }) => (
+            <Link key={to} to={to}
+              className={`block py-2.5 px-3 rounded-xl text-sm font-medium transition-colors ${
+                isActive(to) ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/8'
+              }`}>
+              {label}
+            </Link>
           ))}
+
           {!user && (
-            <div className="flex gap-2 pt-2">
-              <Link to="/login"    className="btn-secondary flex-1 !justify-center !text-xs">Login</Link>
-              <Link to="/register" className="btn-primary  flex-1 !justify-center !text-xs">Sign Up</Link>
+            <div className="flex gap-2 pt-3 border-t border-white/8 mt-3">
+              <Link to="/login" className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold text-slate-300 border border-white/15 hover:bg-white/8 transition-colors">Login</Link>
+              <Link to="/register" className="flex-1 text-center py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-primary-600 to-primary-500 text-white">Sign Up</Link>
             </div>
           )}
           {user && (
-            <button onClick={handleLogout} className="flex items-center gap-2 w-full text-sm text-red-500 py-2 px-3 rounded-lg hover:bg-red-50">
-              <LogOut size={14} /> Logout
-            </button>
+            <div className="pt-3 border-t border-white/8 mt-3 space-y-1">
+              <Link to="/orders" className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/8 transition-colors"><ShoppingBag size={14} /> My Orders</Link>
+              <button onClick={handleLogout} className="flex items-center gap-2 w-full py-2.5 px-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-colors"><LogOut size={14} /> Sign Out</button>
+            </div>
           )}
         </div>
       )}
