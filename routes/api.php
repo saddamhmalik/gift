@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\OrderController;
+use App\Http\Controllers\Api\V1\PayUController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\WebhookPaymentController;
 use Illuminate\Http\Request;
@@ -40,6 +41,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me']);
 
         // Order APIs (one product per order; requires login)
+        Route::get('/orders', [OrderController::class, 'index']);
         Route::post('/order', [OrderController::class, 'store']);
         Route::get('/order', [OrderController::class, 'show']);
         Route::get('/order/{order}', [OrderController::class, 'showById']);
@@ -47,9 +49,14 @@ Route::prefix('v1')->group(function () {
         Route::put('/order/item', [OrderController::class, 'updateItem']);
         Route::delete('/order/item', [OrderController::class, 'clearItem']);
 
-        // Placeholder: checkout, initiate payment (when gateway is integrated)
+        // PayU payment initiation (authenticated)
+        Route::post('/payment/initiate', [PayUController::class, 'initiate']);
     });
 
-    // Webhook: payment success → fulfill via Woohoo (SVC). Server-to-server; secure with gateway webhook secret.
+    // PayU callbacks — server-to-server POSTs from PayU (no auth middleware)
+    Route::post('/payment/payu/success', [PayUController::class, 'payuSuccess']);
+    Route::post('/payment/payu/failure', [PayUController::class, 'payuFailure']);
+
+    // Legacy/manual webhook: server-to-server, secured by gateway webhook secret
     Route::post('/webhooks/payment-success', [WebhookPaymentController::class, 'paymentSuccess']);
 });

@@ -22,6 +22,8 @@ class ProductResource extends JsonResource
             'thumbnail_url' => $this->thumbnail_url,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'tags' => TagResource::collection($this->whenLoaded('tags')),
+            'price_type'   => $this->price_type,
+            'denominations'=> $this->denominations ?? [],
             'is_featured' => $this->is_featured ?? false,
             'is_trending' => $this->is_trending ?? false,
             'views' => $this->views ?? 0,

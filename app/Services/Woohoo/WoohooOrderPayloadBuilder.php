@@ -49,9 +49,8 @@ class WoohooOrderPayloadBuilder
         $totalAmount = round($totalAmount, 2);
 
         $email = $billing['email'] ?? null;
-        $telephone = $billing['telephone'] ?? null;
-        if (empty($email) || empty($telephone)) {
-            throw new InvalidArgumentException('Billing email and telephone are mandatory.');
+        if (empty($email)) {
+            throw new InvalidArgumentException('Billing email is mandatory.');
         }
 
         $addressPayload = $this->buildAddressPayload($address, $billing);
@@ -87,35 +86,93 @@ class WoohooOrderPayloadBuilder
     protected function buildAddressPayload(array $address, array $billing): array
     {
         $firstname = $address['name'] ?? $address['firstname'] ?? $billing['name'] ?? $billing['firstname'] ?? 'Customer';
-        $postcode = $address['postalCode'] ?? $address['postcode'] ?? $billing['postalCode'] ?? $billing['postcode'] ?? '000000';
-        $postcode = strlen((string) $postcode) >= 3 ? (string) $postcode : '000000';
-        return [
-            'country' => $address['country'] ?? $billing['country'] ?? 'IN',
-            'email' => $address['email'] ?? $billing['email'] ?? '',
+        $postcode  = $address['postalCode'] ?? $address['postcode'] ?? $billing['postalCode'] ?? $billing['postcode'] ?? '000000';
+        $postcode  = strlen((string) $postcode) >= 3 ? (string) $postcode : '000000';
+        $rawPhone  = $address['telephone'] ?? $billing['telephone'] ?? '';
+        $phone     = $this->toE164($rawPhone);
+
+        $payload = [
+            'country'   => $address['country'] ?? $billing['country'] ?? 'IN',
+            'email'     => $address['email'] ?? $billing['email'] ?? '',
             'firstname' => $firstname,
-            'line1' => $address['line1'] ?? $billing['line1'] ?? 'N/A',
-            'city' => $address['city'] ?? $billing['city'] ?? 'N/A',
-            'region' => $address['region'] ?? $address['state'] ?? $billing['region'] ?? $billing['state'] ?? 'N/A',
-            'postcode' => $postcode,
-            'telephone' => $address['telephone'] ?? $billing['telephone'] ?? '',
+            'line1'     => $address['line1'] ?? $billing['line1'] ?? 'N/A',
+            'city'      => $address['city']  ?? $billing['city']  ?? 'N/A',
+            'region'    => $address['region'] ?? $address['state'] ?? $billing['region'] ?? $billing['state'] ?? 'N/A',
+            'postcode'  => $postcode,
         ];
+        // Only include telephone when valid — Woohoo validates E164 strictly
+        if ($phone !== '') {
+            $payload['telephone'] = $phone;
+        }
+        return $payload;
     }
 
     protected function buildBillingPayload(array $billing, array $address): array
     {
         $firstname = $billing['name'] ?? $billing['firstname'] ?? 'Customer';
-        $postcode = $billing['postalCode'] ?? $billing['postcode'] ?? $address['postalCode'] ?? $address['postcode'] ?? '000000';
-        $postcode = strlen((string) $postcode) >= 3 ? (string) $postcode : '000000';
-        return [
-            'country' => $billing['country'] ?? $address['country'] ?? 'IN',
-            'email' => $billing['email'] ?? '',
-            'firstname' => $firstname,
-            'telephone' => $billing['telephone'] ?? '',
-            'line1' => $billing['line1'] ?? $address['line1'] ?? 'N/A',
-            'city' => $billing['city'] ?? $address['city'] ?? 'N/A',
-            'region' => $billing['region'] ?? $billing['state'] ?? $address['region'] ?? $address['state'] ?? 'N/A',
+        $postcode  = $billing['postalCode'] ?? $billing['postcode'] ?? $address['postalCode'] ?? $address['postcode'] ?? '000000';
+        $postcode  = strlen((string) $postcode) >= 3 ? (string) $postcode : '000000';
+        $rawPhone  = $billing['telephone'] ?? $address['telephone'] ?? '';
+        $phone     = $this->toE164($rawPhone);
+
+        $payload = [
+            'country'  => $billing['country'] ?? $address['country'] ?? 'IN',
+            'email'    => $billing['email'] ?? '',
+            'firstname'=> $firstname,
+            'line1'    => $billing['line1'] ?? $address['line1'] ?? 'N/A',
+            'city'     => $billing['city']  ?? $address['city']  ?? 'N/A',
+            'region'   => $billing['region'] ?? $billing['state'] ?? $address['region'] ?? $address['state'] ?? 'N/A',
             'postcode' => $postcode,
         ];
+        if ($phone !== '') {
+            $payload['telephone'] = $phone;
+        }
+        return $payload;
+    }
+
+    /**
+     * Convert any phone string to E164 format (+[country_code][number]).
+     * Returns '' if the input is empty or unparseable.
+     * Examples:
+     *   9876543210       → +919876543210  (assume India, 10 digits)
+     *   919876543210     → +919876543210  (12 digits starting with 91)
+     *   +919876543210    → +919876543210  (already E164)
+     *   9999999999       → +919999999999  (10-digit fallback)
+     */
+    protected function toE164(string $phone): string
+    {
+        $phone = trim($phone);
+        if ($phone === '') {
+            return '';
+        }
+
+        // Already valid E164
+        if (preg_match('/^\+[1-9]\d{6,14}$/', $phone)) {
+            return $phone;
+        }
+
+        // Strip everything except digits
+        $digits = preg_replace('/\D/', '', $phone);
+        if ($digits === '' || strlen($digits) < 7) {
+            return '';
+        }
+
+        // 12 digits starting with 91 → Indian number with country code but no +
+        if (strlen($digits) === 12 && str_starts_with($digits, '91')) {
+            return '+' . $digits;
+        }
+
+        // 10 digits → assume India (+91)
+        if (strlen($digits) === 10) {
+            return '+91' . $digits;
+        }
+
+        // 11+ digits: prepend +
+        if (strlen($digits) >= 11) {
+            return '+' . $digits;
+        }
+
+        return '';
     }
 
     /**

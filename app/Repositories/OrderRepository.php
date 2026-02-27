@@ -22,6 +22,15 @@ class OrderRepository
         return $this->model->where('id', $id)->where('user_id', $user->id)->first();
     }
 
+    public function allForUser(User $user, int $perPage = 15): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        return $this->model
+            ->with(['items.product'])
+            ->where('user_id', $user->id)
+            ->latest()
+            ->paginate($perPage);
+    }
+
     public function findByToken(string $orderToken): ?Order
     {
         return $this->model
@@ -49,8 +58,9 @@ class OrderRepository
     public function createForUser(User $user): Order
     {
         return $this->model->create([
-            'user_id' => $user->id,
-            'status' => Order::STATUS_PENDING,
+            'user_id'     => $user->id,
+            'order_token' => (string) Str::uuid(),
+            'status'      => Order::STATUS_PENDING,
         ]);
     }
 

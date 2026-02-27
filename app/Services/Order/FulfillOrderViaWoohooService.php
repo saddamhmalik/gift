@@ -58,21 +58,38 @@ class FulfillOrderViaWoohooService
             ?? ($user ? trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')) : null)
             ?? $user?->name ?? 'Customer';
 
-        if (empty($email) || empty($telephone)) {
-            throw new InvalidArgumentException('Billing email and telephone are required. Set on order, pass in billing, or ensure user has them from signup.');
+        // For deliveryMode=API, Woohoo only requires email (telephone is optional).
+        // The payload builder applies E164 sanitization and omits telephone if invalid.
+        if (empty($email)) {
+            throw new InvalidArgumentException('Billing email is required. Set on order or ensure user has an email.');
         }
 
-        return array_merge([
-            'email' => $email,
-            'telephone' => $telephone,
-            'name' => $name ?: 'Customer',
+        // Build the resolved array first, then merge only non-empty $billing overrides.
+        // This prevents an empty $billing['telephone'] from wiping a valid resolved value.
+        $resolved = [
+            'email'     => $email,
+            'telephone' => $telephone ?: '',
+            'name'      => $name ?: 'Customer',
             'firstname' => $billing['firstname'] ?? $user?->first_name ?? explode(' ', $name, 2)[0] ?? 'Customer',
-            'line1' => $billing['line1'] ?? 'N/A',
-            'city' => $billing['city'] ?? 'N/A',
-            'state' => $billing['state'] ?? '',
-            'postalCode' => $billing['postalCode'] ?? '',
-            'country' => $billing['country'] ?? 'IN',
-        ], $billing);
+            'line1'     => $billing['line1'] ?? 'N/A',
+            'city'      => $billing['city'] ?? 'N/A',
+            'state'     => $billing['state'] ?? '',
+            'postalCode'=> $billing['postalCode'] ?? '',
+            'country'   => $billing['country'] ?? 'IN',
+        ];
+
+        // Merge only billing fields that are non-empty so they don't clobber resolved values
+        foreach ($billing as $k => $v) {
+            if ($v !== null && $v !== '') {
+                $resolved[$k] = $v;
+            }
+        }
+
+        // Ensure email is always the correctly resolved value (never overwritten by an empty billing entry)
+        $resolved['email'] = $email;
+        $resolved['telephone'] = $telephone ?: '';
+
+        return $resolved;
     }
 
     /**

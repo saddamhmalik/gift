@@ -9,6 +9,7 @@ use App\Repositories\OrderItemRepository;
 use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 class OrderService
@@ -27,6 +28,10 @@ class OrderService
         if ($user) {
             $order = $this->orderRepository->findPendingByUser($user);
             if ($order) {
+                // Backfill order_token for legacy orders that were created without one
+                if (! $order->order_token) {
+                    $order->update(['order_token' => (string) Str::uuid()]);
+                }
                 return $order;
             }
             return $this->orderRepository->createForUser($user);
@@ -74,18 +79,18 @@ class OrderService
         $priceType = strtoupper((string) ($product->price_type ?? ''));
         $min = $product->min_price ? (float) $product->min_price : null;
         $max = $product->max_price ? (float) $product->max_price : null;
+        $slabs = $this->getPriceSlabs($product);
 
-        if ($priceType === 'SLAB') {
-            $slabs = $this->getPriceSlabs($product);
-            if (is_array($slabs) && count($slabs) > 0) {
-                $first = $this->parseDenominationValue((string) $slabs[0], $slabs);
-                if ($first !== null) {
-                    return round($first, 2);
-                }
+        // For any product with denominations (SLAB or RANGE), default to the first denomination
+        if (is_array($slabs) && count($slabs) > 0) {
+            $first = $this->parseDenominationValue((string) $slabs[0], $slabs);
+            if ($first !== null) {
+                return round($first, 2);
             }
-            throw new InvalidArgumentException('Product has SLAB pricing. Provide unit_price or selected_denomination from allowed slabs.');
+            throw new InvalidArgumentException('Provide unit_price or selected_denomination from allowed values: ' . implode(', ', $slabs));
         }
 
+        // RANGE without denominations: default to min_price
         if ($min !== null) {
             return round($min, 2);
         }
@@ -184,42 +189,38 @@ class OrderService
     }
 
     /**
-     * Validate price by price_type: RANGE = any value in [min_price, max_price]; SLAB = only values in denominations (priceSlabs).
+     * Validate price against product pricing rules.
+     *
+     * Rules (Woohoo enforces all of these):
+     *  - SLAB                        → price must be exactly one of the denominations
+     *  - RANGE with denominations    → price must be exactly one of the denominations
+     *                                  (Woohoo rejects any value not in the list, even within range)
+     *  - RANGE without denominations → any value within [min_price, max_price]
      */
     protected function validatePrice(Product $product, float $price): void
     {
-        $priceType = strtoupper((string) ($product->price_type ?? ''));
-        $min = $product->min_price ? (float) $product->min_price : null;
-        $max = $product->max_price ? (float) $product->max_price : null;
+        $slabs = $this->getPriceSlabs($product);
 
-        if ($priceType === 'SLAB') {
-            $slabs = $this->getPriceSlabs($product);
-            if (! is_array($slabs) || count($slabs) === 0) {
-                throw new InvalidArgumentException('Product has SLAB pricing but no price slabs defined.');
-            }
-            $allowed = array_map(function ($d) {
-                return is_numeric($d) ? (float) $d : (is_string($d) ? (float) $d : null);
-            }, $slabs);
-            $allowed = array_filter($allowed);
+        // When denominations are defined they are the only allowed values — applies to both SLAB and RANGE
+        if (is_array($slabs) && count($slabs) > 0) {
+            $allowed = array_values(array_filter(array_map(
+                fn ($d) => is_numeric($d) ? (float) $d : null,
+                $slabs
+            )));
             $rounded = round($price, 2);
             foreach ($allowed as $a) {
                 if (abs(round($a, 2) - $rounded) < 0.01) {
                     return;
                 }
             }
-            throw new InvalidArgumentException('Price must be one of the product price slabs: ' . implode(', ', array_map(fn ($a) => (string) $a, $allowed)));
+            throw new InvalidArgumentException(
+                'Price must be one of the allowed denominations: ' . implode(', ', array_map('strval', $allowed))
+            );
         }
 
-        if ($priceType === 'RANGE' || $priceType === '') {
-            if ($min !== null && $price < $min) {
-                throw new InvalidArgumentException("Price must be at least {$min}.");
-            }
-            if ($max !== null && $price > $max) {
-                throw new InvalidArgumentException("Price must be at most {$max}.");
-            }
-            return;
-        }
-
+        // No denominations: validate within min/max range
+        $min = $product->min_price ? (float) $product->min_price : null;
+        $max = $product->max_price ? (float) $product->max_price : null;
         if ($min !== null && $price < $min) {
             throw new InvalidArgumentException("Price must be at least {$min}.");
         }

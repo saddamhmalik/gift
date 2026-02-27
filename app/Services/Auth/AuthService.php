@@ -16,14 +16,37 @@ class AuthService
     {
         $user = User::create([
             'first_name' => $firstName,
-            'last_name' => $lastName,
-            'name' => trim($firstName . ' ' . $lastName),
-            'email' => $email,
-            'phone' => $phone,
-            'password' => Hash::make($password),
+            'last_name'  => $lastName,
+            'name'       => trim($firstName . ' ' . $lastName),
+            'email'      => $email,
+            'phone'      => $this->normalizePhone($phone),
+            'password'   => Hash::make($password),
         ]);
 
         return $user;
+    }
+
+    /**
+     * Normalize a phone number to E164 format (+[country][number]).
+     * Assumes India (+91) when no country code is present.
+     */
+    protected function normalizePhone(string $phone): string
+    {
+        $phone = trim($phone);
+        if (preg_match('/^\+[1-9]\d{6,14}$/', $phone)) {
+            return $phone; // already E164
+        }
+        $digits = preg_replace('/\D/', '', $phone);
+        if (strlen($digits) === 10) {
+            return '+91' . $digits;
+        }
+        if (strlen($digits) === 12 && str_starts_with($digits, '91')) {
+            return '+' . $digits;
+        }
+        if (strlen($digits) >= 11) {
+            return '+' . $digits;
+        }
+        return $phone; // return as-is if we can't parse it
     }
 
     public function login(string $email, string $password): ?User

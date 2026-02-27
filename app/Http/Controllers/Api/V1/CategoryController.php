@@ -25,7 +25,7 @@ class CategoryController extends Controller
         if (!$category) {
             return $this->error('Category not found', 404);
         }
-        $category->load('children');
+        $category->load(['children', 'products' => fn ($q) => $q->where('is_active', true)->with('category')]);
         return $this->success(new CategoryResource($category));
     }
 }

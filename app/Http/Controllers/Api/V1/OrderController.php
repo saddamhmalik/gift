@@ -18,6 +18,17 @@ class OrderController extends Controller
     ) {}
 
     /**
+     * GET /api/v1/orders - List all orders for authenticated user.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $paginator = $this->orderRepository->allForUser($request->user(), 10);
+        return $this->success(
+            OrderResource::collection($paginator)->response()->getData(true)
+        );
+    }
+
+    /**
      * POST /api/v1/order - Create or fetch order.
      */
     public function store(Request $request): JsonResponse
