@@ -84,9 +84,10 @@ export default function ProductDetailPage() {
   })
 
   const product      = data?.data
-  const loyaltyInfo  = loyaltyData?.data
-  const pointBalance = loyaltyInfo?.balance ?? 0
-  const defaultRate  = loyaltyInfo?.default_rate ?? 0.01
+  const loyaltyInfo      = loyaltyData?.data
+  const pointBalance     = loyaltyInfo?.balance ?? 0
+  const defaultRate      = loyaltyInfo?.default_rate ?? 0.01
+  const maxRedeemPerOrder = loyaltyInfo?.max_redeem_per_order ?? 500
 
   if (isLoading) return (
     <div className="min-h-[60vh] flex items-center justify-center">
@@ -117,9 +118,11 @@ export default function ProductDetailPage() {
   const orderTotal    = (effectivePrice || 0) * qty
   // Loyalty
   const earnRate      = product.loyalty_rate ?? defaultRate
-  const pointsToEarn  = Math.round(orderTotal * earnRate * (usePoints ? Math.max(0, 1 - Math.min(pointBalance, orderTotal) / orderTotal) : 1))
-  const pointsApplied = usePoints ? Math.min(pointBalance, orderTotal) : 0
+  // Cap = min(user balance, fixed per-order cap, order total)
+  const maxPointsCap  = Math.min(pointBalance, maxRedeemPerOrder, orderTotal)
+  const pointsApplied = usePoints ? maxPointsCap : 0
   const amountToPay   = Math.max(1, orderTotal - pointsApplied)
+  const pointsToEarn  = Math.round(amountToPay * earnRate)
 
   const handleBuyNow = async () => {
     if (!user) { navigate('/login', { state: { from: { pathname: `/products/${slug}` } } }); return }
@@ -311,7 +314,7 @@ export default function ProductDetailPage() {
                   <div>
                     <p className="text-sm font-semibold text-gray-800">Use PayFlex Points</p>
                     <p className="text-xs text-gray-500">
-                      You have <span className="font-bold text-amber-600">{pointBalance.toFixed(0)} pts</span> (worth ₹{pointBalance.toFixed(0)})
+                      You have <span className="font-bold text-amber-600">{pointBalance.toFixed(0)} pts</span> · max <span className="font-semibold text-amber-600">₹{maxRedeemPerOrder}</span> per order
                     </p>
                   </div>
                 </div>

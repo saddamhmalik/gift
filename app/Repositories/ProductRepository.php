@@ -96,6 +96,43 @@ class ProductRepository implements RepositoryInterface
             ->get();
     }
 
+    public function search(string $query, array $filters = [], int $perPage = 18): LengthAwarePaginator
+    {
+        $q = trim($query);
+
+        return $this->model
+            ->active()
+            ->when($q, function ($builder) use ($q) {
+                $builder->where(function ($inner) use ($q) {
+                    $inner->where('name', 'like', "%{$q}%")
+                          ->orWhere('offer_short_desc', 'like', "%{$q}%")
+                          ->orWhere('description', 'like', "%{$q}%")
+                          ->orWhereHas('category', fn ($c) => $c->where('name', 'like', "%{$q}%"))
+                          ->orWhereHas('tags', fn ($t) => $t->where('name', 'like', "%{$q}%"));
+                });
+            })
+            ->when(!empty($filters['category']), fn ($b) =>
+                $b->whereHas('category', fn ($c) => $c->where('slug', $filters['category']))
+            )
+            ->when(!empty($filters['min_price']), fn ($b) =>
+                $b->where('min_price', '>=', (float) $filters['min_price'])
+            )
+            ->when(!empty($filters['max_price']), fn ($b) =>
+                $b->where('min_price', '<=', (float) $filters['max_price'])
+            )
+            ->when(!empty($filters['sort']), function ($b) use ($filters) {
+                match ($filters['sort']) {
+                    'price_asc'  => $b->orderBy('min_price', 'asc'),
+                    'price_desc' => $b->orderBy('min_price', 'desc'),
+                    'newest'     => $b->orderByDesc('created_at'),
+                    'popular'    => $b->orderByDesc('views'),
+                    default      => $b->orderByDesc('created_at'),
+                };
+            }, fn ($b) => $b->orderByDesc('views'))
+            ->with(['category', 'tags'])
+            ->paginate($perPage);
+    }
+
     public function getByTag(string $tagSlug, int $perPage = 12): LengthAwarePaginator
     {
         return $this->model

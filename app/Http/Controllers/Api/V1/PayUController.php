@@ -67,10 +67,15 @@ class PayUController extends Controller
         // Handle loyalty points redemption request
         $pointsToUse = (float) ($request->input('points_to_use', 0));
         if ($pointsToUse > 0) {
-            $balance = $this->loyaltyService->balance($user);
-            // Cap points to order total and user balance
-            $pointsToUse = min($pointsToUse, $balance, (float) $order->total_amount);
-            $pointsToUse = round($pointsToUse, 2);
+            $balance         = $this->loyaltyService->balance($user);
+            $maxPerOrder     = (float) config('loyalty.max_redeem_per_order', 500);
+
+            // Cap: min(requested, user balance, fixed per-order cap, order total)
+            $caps        = [$balance, (float) $order->total_amount];
+            if ($maxPerOrder > 0) {
+                $caps[] = $maxPerOrder;
+            }
+            $pointsToUse = round(min($pointsToUse, ...$caps), 2);
 
             if ($pointsToUse < (float) config('loyalty.min_redeem', 1)) {
                 $pointsToUse = 0;

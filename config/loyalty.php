@@ -25,5 +25,16 @@ return [
     |--------------------------------------------------------------------------
     | Minimum points a user must have to redeem any on a transaction.
     */
-    'min_redeem' => env('LOYALTY_MIN_REDEEM', 1),
+    'min_redeem' => env('LOYALTY_MIN_REDEEM', 0.2),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Maximum Redeemable Points Per Order (fixed ₹ value)
+    |--------------------------------------------------------------------------
+    | Maximum number of points (= ₹ value) a user can redeem on a single
+    | order, regardless of order size or balance.
+    | E.g. 500 = user can use at most 500 points (₹500) per order.
+    | Set to 0 to allow up to full order total (only ₹1 min for PayU).
+    */
+    'max_redeem_per_order' => env('LOYALTY_MAX_REDEEM_PER_ORDER', 500),
 ];

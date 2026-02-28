@@ -52,6 +52,35 @@ class ProductController extends Controller
         return $this->success(ProductResource::collection($products));
     }
 
+    public function search(Request $request): JsonResponse
+    {
+        $request->validate([
+            'q'         => 'nullable|string|max:100',
+            'category'  => 'nullable|string|max:100',
+            'min_price' => 'nullable|numeric|min:0',
+            'max_price' => 'nullable|numeric|min:0',
+            'sort'      => 'nullable|in:price_asc,price_desc,newest,popular',
+            'per_page'  => 'nullable|integer|min:1|max:48',
+        ]);
+
+        $q       = trim($request->get('q', ''));
+        $perPage = min((int) $request->get('per_page', 18), 48);
+        $filters = $request->only(['category', 'min_price', 'max_price', 'sort']);
+
+        $results = $this->productService->search($q, $filters, $perPage);
+
+        return $this->success([
+            'data' => ProductResource::collection($results),
+            'meta' => [
+                'current_page' => $results->currentPage(),
+                'last_page'    => $results->lastPage(),
+                'per_page'     => $results->perPage(),
+                'total'        => $results->total(),
+                'query'        => $q,
+            ],
+        ]);
+    }
+
     public function show(Product $product): JsonResponse
     {
         $product = $this->productService->getById($product);

@@ -113,10 +113,12 @@ export default function HeroSection() {
           </div>
         </form>
 
-        {/* Quick links */}
+        {/* Popular search chips */}
         <div className="flex flex-wrap items-center justify-center gap-2 mb-14 text-xs">
-          {['Amazon Pay', 'Flipkart', 'BookMyShow', 'Uber', 'Swiggy'].map(b => (
-            <Link key={b} to={`/categories`} className="px-3 py-1.5 rounded-full bg-white/6 border border-white/10 text-slate-400 hover:text-white hover:border-white/20 transition-all">
+          <span className="text-slate-500 mr-1">Popular:</span>
+          {['Amazon', 'Flipkart', 'BookMyShow', 'Swiggy', 'Uber', 'Zomato', 'Netflix'].map(b => (
+            <Link key={b} to={`/search?q=${encodeURIComponent(b)}`}
+              className="px-3 py-1.5 rounded-full bg-white/6 border border-white/10 text-slate-400 hover:text-white hover:border-primary-500/40 hover:bg-white/10 transition-all">
               {b}
             </Link>
           ))}

@@ -42,9 +42,10 @@ class LoyaltyController extends Controller
             'expiring_soon'     => (float) $expiringSoon,
             'lifetime_earned'   => $lifetimeEarned,
             'lifetime_redeemed' => $lifetimeRedeemed,
-            'default_rate'      => (float) config('loyalty.default_rate', 0.01),
-            'validity_days'     => (int) config('loyalty.validity_days', 30),
-            'value_per_point'   => 1.0, // 1 point = ₹1
+            'default_rate'         => (float) config('loyalty.default_rate', 0.01),
+            'validity_days'        => (int)   config('loyalty.validity_days', 30),
+            'max_redeem_per_order' => (float) config('loyalty.max_redeem_per_order', 500),
+            'value_per_point'      => 1.0, // 1 point = ₹1
         ]);
     }
 

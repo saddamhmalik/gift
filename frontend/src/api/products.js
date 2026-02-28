@@ -8,3 +8,4 @@ export const getBestSellers      = ()           => api.get('/products/best-selle
 export const getFeatured         = ()           => api.get('/products/featured').then(r => r.data)
 export const getNewArrivals      = ()           => api.get('/products/new-arrivals').then(r => r.data)
 export const getProduct          = (product)   => api.get(`/products/${product}`).then(r => r.data)
+export const searchProducts      = (params)    => api.get('/products/search', { params }).then(r => r.data)

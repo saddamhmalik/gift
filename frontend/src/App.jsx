@@ -16,6 +16,7 @@ import PaymentFailurePage from './pages/PaymentFailurePage'
 import AboutPage          from './pages/AboutPage'
 import PrivacyPolicyPage  from './pages/PrivacyPolicyPage'
 import TermsPage          from './pages/TermsPage'
+import SearchPage         from './pages/SearchPage'
 import LoyaltyPage        from './pages/LoyaltyPage'
 import MyPointsPage       from './pages/MyPointsPage'
 import TagsPage           from './pages/TagsPage'
@@ -62,6 +63,9 @@ export default function App() {
               {/* Tags */}
               <Route path="/tags"                 element={<Layout><TagsPage /></Layout>} />
               <Route path="/tags/:slug"           element={<Layout><TagPage /></Layout>} />
+
+              {/* Search */}
+              <Route path="/search"               element={<Layout><SearchPage /></Layout>} />
 
               {/* Company pages */}
               <Route path="/about"                element={<Layout><AboutPage /></Layout>} />

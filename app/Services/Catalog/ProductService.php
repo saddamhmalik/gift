@@ -64,6 +64,12 @@ class ProductService
         return $product;
     }
 
+    public function search(string $query, array $filters = [], int $perPage = 18): LengthAwarePaginator
+    {
+        // Search results are not cached because queries/filters are too varied
+        return $this->repository->search($query, $filters, $perPage);
+    }
+
     public function getByTag(string $tagSlug, int $perPage = 12): LengthAwarePaginator
     {
         return $this->repository->getByTag($tagSlug, $perPage);

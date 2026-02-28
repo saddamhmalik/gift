@@ -23,6 +23,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/categories/{slug}', [CategoryController::class, 'show']);
     Route::get('/tags', [TagController::class, 'index']);
     Route::get('/tags/{slug}', [TagController::class, 'show']);
+    Route::get('/products/search',    [ProductController::class, 'search']);
     Route::get('/products/hot-deals', [ProductController::class, 'hotDeals']);
     Route::get('/products/trending', [ProductController::class, 'trending']);
     Route::get('/products/best-sellers', [ProductController::class, 'bestSellers']);
