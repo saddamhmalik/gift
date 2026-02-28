@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ShoppingCart, ChevronRight, Shield, Zap, RefreshCw, Info, Loader2, AlertCircle, Star, Gift } from 'lucide-react'
@@ -83,7 +83,20 @@ export default function ProductDetailPage() {
     staleTime: 1000 * 60,
   })
 
-  const product      = data?.data
+  const product = data?.data
+
+  // Auto-select the first denomination as soon as product data arrives
+  useEffect(() => {
+    if (product) {
+      const denoms = Array.isArray(product.denominations) ? product.denominations : []
+      if (denoms.length > 0 && selectedDenom === null) {
+        const first = typeof denoms[0] === 'object' ? String(denoms[0].price ?? denoms[0]) : String(denoms[0])
+        setSelectedDenom(first)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product])
+
   const loyaltyInfo      = loyaltyData?.data
   const pointBalance     = loyaltyInfo?.balance ?? 0
   const defaultRate      = loyaltyInfo?.default_rate ?? 0.01
@@ -128,10 +141,6 @@ export default function ProductDetailPage() {
     if (!user) { navigate('/login', { state: { from: { pathname: `/products/${slug}` } } }); return }
     setBuyError('')
 
-    if (hasDenoms && selectedDenom == null) {
-      setBuyError('Please select a denomination.')
-      return
-    }
     if (isFreeRange) {
       const v = parseFloat(customPrice)
       if (!v || v < minPrice || v > maxPrice) {
@@ -398,7 +407,7 @@ export default function ProductDetailPage() {
               {busy ? (
                 <><Loader2 size={18} className="animate-spin" /> {paying ? 'Redirecting to PayU…' : 'Preparing order…'}</>
               ) : (
-                <><ShoppingCart size={18} /> {usePoints && pointsApplied > 0 ? `Pay ₹${amountToPay.toLocaleString()} via PayU` : 'Pay with PayU'}</>
+                <><ShoppingCart size={18} /> {usePoints && pointsApplied > 0 ? `Pay ₹${amountToPay.toLocaleString()}` : 'Pay Now'}</>
               )}
             </button>
           ) : (
@@ -407,12 +416,12 @@ export default function ProductDetailPage() {
               state={{ from: { pathname: `/products/${slug}` } }}
               className="btn-primary w-full !py-4 !text-base !rounded-2xl justify-center"
             >
-              <ShoppingCart size={18} /> Login to Buy
+              <ShoppingCart size={18} /> Login to Pay
             </Link>
           )}
 
           <p className="text-center text-xs text-gray-400">
-            Powered by PayU · 256-bit SSL encryption · Instant delivery after payment
+            Secured by PayU · 256-bit SSL encryption · Instant delivery after payment
           </p>
 
           {/* Description */}

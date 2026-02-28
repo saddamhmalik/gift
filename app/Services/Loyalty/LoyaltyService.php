@@ -4,6 +4,7 @@ namespace App\Services\Loyalty;
 
 use App\Models\LoyaltyPoint;
 use App\Models\Order;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -36,7 +37,7 @@ class LoyaltyService
             return null;
         }
 
-        $expiresAt = now()->addDays((int) config('loyalty.validity_days', 30));
+        $expiresAt = now()->addDays((int) Setting::get('loyalty.validity_days', config('loyalty.validity_days', 30)));
 
         $lp = LoyaltyPoint::create([
             'user_id'     => $user->id,
@@ -117,17 +118,17 @@ class LoyaltyService
      */
     public function estimatePoints(float $amount, ?float $rate = null): float
     {
-        $r = $rate ?? (float) config('loyalty.default_rate', 0.01);
+        $r = $rate ?? (float) Setting::get('loyalty.default_rate', config('loyalty.default_rate', 0.01));
         return round($amount * $r, 2);
     }
 
     /**
-     * Resolve the effective loyalty_rate for an order (from first product, else global default).
+     * Resolve the effective loyalty_rate for an order (from first product, else DB setting, else config).
      */
     protected function resolveRate(Order $order): float
     {
         $product = $order->items->first()?->product;
-        $rate = $product?->loyalty_rate ?? config('loyalty.default_rate', 0.01);
+        $rate    = $product?->loyalty_rate ?? Setting::get('loyalty.default_rate', config('loyalty.default_rate', 0.01));
         return (float) $rate;
     }
 }

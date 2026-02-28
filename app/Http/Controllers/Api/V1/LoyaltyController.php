@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\Controller;
+use App\Models\Setting;
 use App\Services\Loyalty\LoyaltyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,9 +43,9 @@ class LoyaltyController extends Controller
             'expiring_soon'     => (float) $expiringSoon,
             'lifetime_earned'   => $lifetimeEarned,
             'lifetime_redeemed' => $lifetimeRedeemed,
-            'default_rate'         => (float) config('loyalty.default_rate', 0.01),
-            'validity_days'        => (int)   config('loyalty.validity_days', 30),
-            'max_redeem_per_order' => (float) config('loyalty.max_redeem_per_order', 500),
+            'default_rate'         => (float) Setting::get('loyalty.default_rate',         config('loyalty.default_rate', 0.01)),
+            'validity_days'        => (int)   Setting::get('loyalty.validity_days',         config('loyalty.validity_days', 30)),
+            'max_redeem_per_order' => (float) Setting::get('loyalty.max_redeem_per_order',  config('loyalty.max_redeem_per_order', 500)),
             'value_per_point'      => 1.0, // 1 point = ₹1
         ]);
     }
@@ -90,7 +91,7 @@ class LoyaltyController extends Controller
         $request->validate(['amount' => 'required|numeric|min:1']);
 
         $amount   = (float) $request->amount;
-        $rate     = (float) config('loyalty.default_rate', 0.01);
+        $rate     = (float) Setting::get('loyalty.default_rate', config('loyalty.default_rate', 0.01));
         $points   = $this->loyaltyService->estimatePoints($amount, $rate);
 
         return $this->success([

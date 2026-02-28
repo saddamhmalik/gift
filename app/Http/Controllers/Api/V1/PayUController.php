@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Exceptions\Woohoo\WoohooOrderException;
 use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\V1\OrderResource;
+use App\Models\Setting;
 use App\Repositories\OrderRepository;
 use App\Services\Loyalty\LoyaltyService;
 use App\Services\Order\FulfillOrderViaWoohooService;
@@ -68,16 +69,17 @@ class PayUController extends Controller
         $pointsToUse = (float) ($request->input('points_to_use', 0));
         if ($pointsToUse > 0) {
             $balance         = $this->loyaltyService->balance($user);
-            $maxPerOrder     = (float) config('loyalty.max_redeem_per_order', 500);
+            $maxPerOrder     = (float) Setting::get('loyalty.max_redeem_per_order', config('loyalty.max_redeem_per_order', 500));
+            $minRedeem       = (float) Setting::get('loyalty.min_redeem',            config('loyalty.min_redeem', 1));
 
             // Cap: min(requested, user balance, fixed per-order cap, order total)
-            $caps        = [$balance, (float) $order->total_amount];
+            $caps = [$balance, (float) $order->total_amount];
             if ($maxPerOrder > 0) {
                 $caps[] = $maxPerOrder;
             }
             $pointsToUse = round(min($pointsToUse, ...$caps), 2);
 
-            if ($pointsToUse < (float) config('loyalty.min_redeem', 1)) {
+            if ($pointsToUse < $minRedeem) {
                 $pointsToUse = 0;
             }
         }

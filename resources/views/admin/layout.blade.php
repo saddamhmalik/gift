@@ -49,6 +49,12 @@
                             Users
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('admin.settings.index') }}" class="flex items-center gap-3 rounded-md border-l-4 border-transparent px-3 py-2.5 text-sm font-medium transition-colors {{ request()->routeIs('admin.settings.*') ? 'border-[#3c8dbc] bg-white/10 text-white' : 'text-[#b8c7ce] hover:bg-white/5 hover:text-white' }}">
+                            <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                            Settings
+                        </a>
+                    </li>
                     <li class="mt-4 border-t border-white/10 pt-4">
                         <a href="{{ url('/horizon') }}" target="_blank" rel="noopener" class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-[#b8c7ce] transition-colors hover:bg-white/5 hover:text-white">
                             <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -78,7 +84,7 @@
                 </div>
             </header>
 
-            <main class="flex-1 px-8 py-6">
+            <main class="flex-1 px-8 py-6 min-w-0">
                 @if(session('success'))
                     <div class="mb-6 rounded-xl border border-emerald-200/80 bg-emerald-50/80 px-4 py-3 text-sm font-medium text-emerald-800 shadow-sm">{{ session('success') }}</div>
                 @endif
@@ -89,5 +95,6 @@
             </main>
         </div>
     </div>
+    @stack('scripts')
 </body>
 </html>
