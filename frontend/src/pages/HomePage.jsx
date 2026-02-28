@@ -1,12 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { Flame, TrendingUp, Star, Sparkles, Package, Tag, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import HeroSection       from '../components/sections/HeroSection'
+import HeroSection from '../components/sections/HeroSection'
 import CategoriesSection from '../components/sections/CategoriesSection'
-import ProductSection    from '../components/sections/ProductSection'
-import PromoSection      from '../components/sections/PromoSection'
-import TagsSection       from '../components/sections/TagsSection'
-import { getHotDeals, getTrending, getBestSellers, getFeatured, getNewArrivals } from '../api/products'
+import ProductSection from '../components/sections/ProductSection'
+import PromoSection from '../components/sections/PromoSection'
+import TagsSection from '../components/sections/TagsSection'
+import {
+  getHotDeals,
+  getTrending,
+  getBestSellers,
+  getFeatured,
+  getNewArrivals,
+} from '../api/products'
 import { getTags } from '../api/tags'
 
 function useProductQuery(key, fn) {
@@ -14,18 +20,63 @@ function useProductQuery(key, fn) {
 }
 
 const SECTIONS = [
-  { key: 'hotDeals',    fn: getHotDeals,    title: 'Hot Deals',    icon: Flame,      iconColor: 'text-rose-500',    badge: 'deal',       viewAllLink: '/hot-deals',    accentColor: 'from-rose-500 to-orange-500' },
-  { key: 'trending',    fn: getTrending,    title: 'Trending Now', icon: TrendingUp, iconColor: 'text-primary-500', badge: 'trending',   viewAllLink: '/trending',     accentColor: 'from-primary-500 to-violet-600' },
-  { key: 'bestSellers', fn: getBestSellers, title: 'Best Sellers', icon: Star,       iconColor: 'text-amber-500',   badge: 'bestseller', viewAllLink: '/best-sellers', accentColor: 'from-amber-400 to-orange-500' },
-  { key: 'featured',    fn: getFeatured,    title: 'Featured',     icon: Sparkles,   iconColor: 'text-blue-500',    badge: 'featured',   viewAllLink: '/featured',     accentColor: 'from-blue-500 to-indigo-600' },
-  { key: 'newArrivals', fn: getNewArrivals, title: 'New Arrivals', icon: Package,    iconColor: 'text-emerald-500', badge: 'new',        viewAllLink: '/new-arrivals', accentColor: 'from-emerald-500 to-teal-600' },
+  {
+    key: 'hotDeals',
+    fn: getHotDeals,
+    title: 'Hot Deals',
+    icon: Flame,
+    iconColor: 'text-rose-500',
+    badge: 'deal',
+    viewAllLink: '/hot-deals',
+    accentColor: 'from-rose-500 to-orange-500',
+  },
+  {
+    key: 'trending',
+    fn: getTrending,
+    title: 'Trending Now',
+    icon: TrendingUp,
+    iconColor: 'text-primary-500',
+    badge: 'trending',
+    viewAllLink: '/trending',
+    accentColor: 'from-primary-500 to-violet-600',
+  },
+  {
+    key: 'bestSellers',
+    fn: getBestSellers,
+    title: 'Best Sellers',
+    icon: Star,
+    iconColor: 'text-amber-500',
+    badge: 'bestseller',
+    viewAllLink: '/best-sellers',
+    accentColor: 'from-amber-400 to-orange-500',
+  },
+  {
+    key: 'featured',
+    fn: getFeatured,
+    title: 'Featured',
+    icon: Sparkles,
+    iconColor: 'text-blue-500',
+    badge: 'featured',
+    viewAllLink: '/featured',
+    accentColor: 'from-blue-500 to-indigo-600',
+  },
+  {
+    key: 'newArrivals',
+    fn: getNewArrivals,
+    title: 'New Arrivals',
+    icon: Package,
+    iconColor: 'text-emerald-500',
+    badge: 'new',
+    viewAllLink: '/new-arrivals',
+    accentColor: 'from-emerald-500 to-teal-600',
+  },
 ]
 
 /** Full-width "Shop by Tags" section shown at the bottom of the homepage */
 function TagsBrowseSection() {
   const { data, isLoading } = useQuery({
     queryKey: ['tags'],
-    queryFn:  getTags,
+    queryFn: getTags,
     staleTime: 300_000,
   })
 
@@ -35,7 +86,6 @@ function TagsBrowseSection() {
   return (
     <section className="bg-white border-t border-slate-100 py-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -43,7 +93,9 @@ function TagsBrowseSection() {
               <Tag size={16} className="text-white" />
             </div>
             <div>
-              <h2 className="text-[18px] font-extrabold text-slate-900 tracking-tight">Shop by Tags</h2>
+              <h2 className="text-[18px] font-extrabold text-slate-900 tracking-tight">
+                Shop by Tags
+              </h2>
               <p className="text-xs text-slate-400 mt-0.5">Browse gifts by category or occasion</p>
             </div>
           </div>
@@ -51,7 +103,8 @@ function TagsBrowseSection() {
             to="/tags"
             className="flex items-center gap-1 text-sm font-bold text-primary-600 hover:text-primary-700 group transition-colors"
           >
-            All tags <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+            All tags{' '}
+            <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 
@@ -59,9 +112,13 @@ function TagsBrowseSection() {
         <div className="flex flex-wrap gap-3">
           {isLoading
             ? Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="skeleton h-10 rounded-full" style={{ width: `${80 + (i % 4) * 24}px` }} />
+                <div
+                  key={i}
+                  className="skeleton h-10 rounded-full"
+                  style={{ width: `${80 + (i % 4) * 24}px` }}
+                />
               ))
-            : tags.map(tag => (
+            : tags.map((tag) => (
                 <Link
                   key={tag.id}
                   to={`/tags/${tag.slug}`}
@@ -75,8 +132,7 @@ function TagsBrowseSection() {
                     </span>
                   )}
                 </Link>
-              ))
-          }
+              ))}
         </div>
       </div>
     </section>
@@ -132,10 +188,10 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { num: '500+', label: 'Gift Card Brands',  emoji: '🏷️' },
-              { num: '50K+', label: 'Happy Customers',   emoji: '😊' },
-              { num: '100%', label: 'Secure Payments',   emoji: '🔒' },
-              { num: '24/7', label: 'Instant Delivery',  emoji: '⚡' },
+              { num: '500+', label: 'Gift Card Brands', emoji: '🏷️' },
+              { num: '50K+', label: 'Happy Customers', emoji: '😊' },
+              { num: '100%', label: 'Secure Payments', emoji: '🔒' },
+              { num: '24/7', label: 'Instant Delivery', emoji: '⚡' },
             ].map(({ num, label, emoji }) => (
               <div key={label} className="flex flex-col items-center gap-2.5">
                 <span className="text-4xl">{emoji}</span>

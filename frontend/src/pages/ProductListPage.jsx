@@ -1,16 +1,57 @@
 import { useQuery } from '@tanstack/react-query'
 import { useLocation } from 'react-router-dom'
 import { Flame, TrendingUp, Star, Sparkles, Package } from 'lucide-react'
-import { getHotDeals, getTrending, getBestSellers, getFeatured, getNewArrivals } from '../api/products'
+import {
+  getHotDeals,
+  getTrending,
+  getBestSellers,
+  getFeatured,
+  getNewArrivals,
+} from '../api/products'
 import ProductCard from '../components/ui/ProductCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
 
 const CONFIG = {
-  '/hot-deals':    { title: 'Hot Deals',    fn: getHotDeals,    badge: 'deal',       Icon: Flame,      color: 'text-red-500',    desc: 'Exclusive discounts on top gift cards' },
-  '/trending':     { title: 'Trending',     fn: getTrending,    badge: 'trending',   Icon: TrendingUp, color: 'text-purple-500', desc: 'What everyone is buying right now' },
-  '/best-sellers': { title: 'Best Sellers', fn: getBestSellers, badge: 'bestseller', Icon: Star,       color: 'text-amber-500',  desc: 'Our most popular gift cards' },
-  '/featured':     { title: 'Featured',     fn: getFeatured,    badge: 'featured',   Icon: Sparkles,   color: 'text-blue-500',   desc: 'Hand-picked gift cards by our team' },
-  '/new-arrivals': { title: 'New Arrivals', fn: getNewArrivals, badge: 'new',        Icon: Package,    color: 'text-green-500',  desc: 'Freshly added gift card brands' },
+  '/hot-deals': {
+    title: 'Hot Deals',
+    fn: getHotDeals,
+    badge: 'deal',
+    Icon: Flame,
+    color: 'text-red-500',
+    desc: 'Exclusive discounts on top gift cards',
+  },
+  '/trending': {
+    title: 'Trending',
+    fn: getTrending,
+    badge: 'trending',
+    Icon: TrendingUp,
+    color: 'text-purple-500',
+    desc: 'What everyone is buying right now',
+  },
+  '/best-sellers': {
+    title: 'Best Sellers',
+    fn: getBestSellers,
+    badge: 'bestseller',
+    Icon: Star,
+    color: 'text-amber-500',
+    desc: 'Our most popular gift cards',
+  },
+  '/featured': {
+    title: 'Featured',
+    fn: getFeatured,
+    badge: 'featured',
+    Icon: Sparkles,
+    color: 'text-blue-500',
+    desc: 'Hand-picked gift cards by our team',
+  },
+  '/new-arrivals': {
+    title: 'New Arrivals',
+    fn: getNewArrivals,
+    badge: 'new',
+    Icon: Package,
+    color: 'text-green-500',
+    desc: 'Freshly added gift card brands',
+  },
 }
 
 export default function ProductListPage() {
@@ -20,7 +61,7 @@ export default function ProductListPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: [pathname],
-    queryFn:  cfg.fn,
+    queryFn: cfg.fn,
     staleTime: 1000 * 60 * 5,
   })
 
@@ -37,9 +78,8 @@ export default function ProductListPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {isLoading
-          ? Array.from({length: 10}).map((_, i) => <SkeletonCard key={i} />)
-          : products.map(p => <ProductCard key={p.id} product={p} badge={cfg.badge} />)
-        }
+          ? Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
+          : products.map((p) => <ProductCard key={p.id} product={p} badge={cfg.badge} />)}
       </div>
 
       {!isLoading && products.length === 0 && (

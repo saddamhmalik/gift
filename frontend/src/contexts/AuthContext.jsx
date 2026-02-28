@@ -1,26 +1,39 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { login as loginApi, register as registerApi, logout as logoutApi, me as meApi } from '../api/auth'
+import {
+  login as loginApi,
+  register as registerApi,
+  logout as logoutApi,
+  me as meApi,
+} from '../api/auth'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(() => {
-    try { return JSON.parse(localStorage.getItem('auth_user')) } catch { return null }
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('auth_user'))
+    } catch {
+      return null
+    }
   })
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token')
     if (token && !user) {
-      meApi().then(r => setUser(r.data)).catch(() => {
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('auth_user')
-      })
+      meApi()
+        .then((r) => setUser(r.data))
+        .catch(() => {
+          localStorage.removeItem('auth_token')
+          localStorage.removeItem('auth_user')
+        })
     }
   }, []) // eslint-disable-line
 
   useEffect(() => {
-    const handleLogout = () => { setUser(null) }
+    const handleLogout = () => {
+      setUser(null)
+    }
     window.addEventListener('auth:logout', handleLogout)
     return () => window.removeEventListener('auth:logout', handleLogout)
   }, [])
@@ -33,7 +46,9 @@ export function AuthProvider({ children }) {
       localStorage.setItem('auth_user', JSON.stringify(res.data.user))
       setUser(res.data.user)
       return res
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   const register = useCallback(async (data) => {
@@ -44,12 +59,18 @@ export function AuthProvider({ children }) {
       localStorage.setItem('auth_user', JSON.stringify(res.data.user))
       setUser(res.data.user)
       return res
-    } finally { setLoading(false) }
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   const logoutUser = useCallback(async () => {
     setLoading(true)
-    try { await logoutApi() } catch { /* ignore */ } finally {
+    try {
+      await logoutApi()
+    } catch {
+      /* ignore */
+    } finally {
       localStorage.removeItem('auth_token')
       localStorage.removeItem('auth_user')
       setUser(null)
@@ -64,11 +85,15 @@ export function AuthProvider({ children }) {
       localStorage.setItem('auth_user', JSON.stringify(u))
       setUser(u)
       return u
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout: logoutUser, refreshUser }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, register, logout: logoutUser, refreshUser }}
+    >
       {children}
     </AuthContext.Provider>
   )

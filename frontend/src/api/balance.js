@@ -6,7 +6,7 @@ import api from './client'
  */
 export const checkCardBalance = ({ cardNumber, pin, sku }) => {
   const payload = { card_number: cardNumber }
-  if (pin?.trim())  payload.pin = pin.trim()
-  if (sku?.trim())  payload.sku = sku.trim()
-  return api.post('/balance', payload).then(r => r.data)
+  if (pin?.trim()) payload.pin = pin.trim()
+  if (sku?.trim()) payload.sku = sku.trim()
+  return api.post('/balance', payload).then((r) => r.data)
 }

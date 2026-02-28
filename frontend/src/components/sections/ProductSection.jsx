@@ -3,7 +3,16 @@ import { ArrowRight } from 'lucide-react'
 import ProductCard from '../ui/ProductCard'
 import { SkeletonCard } from '../ui/Skeleton'
 
-export default function ProductSection({ title, icon: Icon, iconColor = 'text-primary-500', badge, viewAllLink, products = [], isLoading, accentColor = 'from-primary-500 to-violet-500' }) {
+export default function ProductSection({
+  title,
+  icon: Icon,
+  iconColor = 'text-primary-500',
+  badge,
+  viewAllLink,
+  products = [],
+  isLoading,
+  accentColor = 'from-primary-500 to-violet-500',
+}) {
   const items = products.slice(0, 6)
 
   return (
@@ -12,7 +21,9 @@ export default function ProductSection({ title, icon: Icon, iconColor = 'text-pr
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           {Icon && (
-            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${accentColor} flex items-center justify-center shadow-sm flex-shrink-0`}>
+            <div
+              className={`w-9 h-9 rounded-xl bg-gradient-to-br ${accentColor} flex items-center justify-center shadow-sm flex-shrink-0`}
+            >
               <Icon size={17} className="text-white" />
             </div>
           )}
@@ -20,8 +31,12 @@ export default function ProductSection({ title, icon: Icon, iconColor = 'text-pr
         </div>
 
         {viewAllLink && (
-          <Link to={viewAllLink} className="flex items-center gap-1 text-sm font-bold text-primary-600 hover:text-primary-700 transition-colors group">
-            View all <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+          <Link
+            to={viewAllLink}
+            className="flex items-center gap-1 text-sm font-bold text-primary-600 hover:text-primary-700 transition-colors group"
+          >
+            View all{' '}
+            <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
           </Link>
         )}
       </div>
@@ -30,8 +45,7 @@ export default function ProductSection({ title, icon: Icon, iconColor = 'text-pr
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-          : items.map((p, i) => <ProductCard key={p.id} product={p} badge={badge} index={i} />)
-        }
+          : items.map((p, i) => <ProductCard key={p.id} product={p} badge={badge} index={i} />)}
         {!isLoading && products.length === 0 && (
           <p className="col-span-3 text-slate-400 text-sm py-8">No products available.</p>
         )}

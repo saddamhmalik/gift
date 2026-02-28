@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { Tag } from 'lucide-react'
 import { getTags } from '../api/tags'
 
-
 export default function TagsPage() {
   const { data, isLoading } = useQuery({ queryKey: ['tags'], queryFn: getTags, staleTime: 300_000 })
   const tags = data?.data ?? []
@@ -27,7 +26,7 @@ export default function TagsPage() {
           ? Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="skeleton h-14 rounded-2xl" />
             ))
-          : tags.map(tag => (
+          : tags.map((tag) => (
               <Link
                 key={tag.id}
                 to={`/tags/${tag.slug}`}
@@ -36,8 +35,7 @@ export default function TagsPage() {
                 <span className="w-2.5 h-2.5 rounded-full bg-primary-500 flex-shrink-0" />
                 {tag.name}
               </Link>
-            ))
-        }
+            ))}
         {!isLoading && tags.length === 0 && (
           <p className="col-span-5 text-center text-slate-400 py-16">No tags found.</p>
         )}

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\V1\UserResource;
+use App\Mail\PasswordResetMail;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -143,5 +144,48 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return $this->success(new UserResource($request->user()));
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $v = Validator::make($request->all(), ['email' => 'required|email']);
+        if ($v->fails()) {
+            return $this->error('Validation failed', 422, $v->errors());
+        }
+
+        $token = $this->authService->forgotPassword($request->email);
+        if ($token) {
+            $frontendUrl = rtrim(config('app.frontend_url'), '/');
+            $resetUrl = $frontendUrl . '/reset-password?token=' . urlencode($token) . '&email=' . urlencode($request->email);
+            \Illuminate\Support\Facades\Mail::to($request->email)->send(new PasswordResetMail(
+                $request->email,
+                $resetUrl,
+                60
+            ));
+        }
+        return $this->success(['message' => 'If that email is registered, we sent a password reset link.']);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $v = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'token' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+        if ($v->fails()) {
+            return $this->error('Validation failed', 422, $v->errors());
+        }
+
+        $ok = $this->authService->resetPassword(
+            $request->email,
+            $request->token,
+            $request->password
+        );
+        if (!$ok) {
+            return $this->error('Invalid or expired reset link. Request a new one.', 400);
+        }
+
+        return $this->success(null, 'Password reset successfully. You can sign in with your new password.');
     }
 }

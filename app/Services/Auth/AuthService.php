@@ -2,15 +2,18 @@
 
 namespace App\Services\Auth;
 
+use App\Mail\WelcomeMail;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 
 class AuthService
 {
     private const OTP_LENGTH = 6;
     private const OTP_EXPIRY_MINUTES = 10;
+    private const PASSWORD_RESET_EXPIRY_MINUTES = 60;
 
     public function register(string $firstName, string $lastName, string $email, string $phone, string $password): User
     {
@@ -22,6 +25,8 @@ class AuthService
             'phone'      => $this->normalizePhone($phone),
             'password'   => Hash::make($password),
         ]);
+
+        \Illuminate\Support\Facades\Mail::to($user->email)->send(new WelcomeMail($user));
 
         return $user;
     }
@@ -125,5 +130,49 @@ class AuthService
             'avatar' => $socialUser->getAvatar(),
             'password' => Hash::make(bin2hex(random_bytes(16))),
         ]);
+    }
+
+    /**
+     * Create a password reset token and return the raw token for the link.
+     * Returns null if user not found.
+     */
+    public function forgotPassword(string $email): ?string
+    {
+        $user = User::where('email', $email)->first();
+        if (!$user) {
+            return null;
+        }
+
+        $token = Str::random(64);
+        $hashed = Hash::make($token);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $email],
+            ['token' => $hashed, 'created_at' => now()]
+        );
+
+        return $token;
+    }
+
+    /**
+     * Reset password using token from email. Returns true on success.
+     */
+    public function resetPassword(string $email, string $token, string $password): bool
+    {
+        $row = DB::table('password_reset_tokens')->where('email', $email)->first();
+        if (!$row || !Hash::check($token, $row->token)) {
+            return false;
+        }
+
+        $createdAt = $row->created_at ? \Carbon\Carbon::parse($row->created_at) : null;
+        if ($createdAt && $createdAt->addMinutes(self::PASSWORD_RESET_EXPIRY_MINUTES)->isPast()) {
+            DB::table('password_reset_tokens')->where('email', $email)->delete();
+            return false;
+        }
+
+        User::where('email', $email)->update(['password' => Hash::make($password)]);
+        DB::table('password_reset_tokens')->where('email', $email)->delete();
+
+        return true;
     }
 }

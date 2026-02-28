@@ -137,7 +137,10 @@ function PolicyLayout({ Icon, iconBg, tag, title, effectiveDate, intro, sections
       {/* Content */}
       <div className="max-w-3xl mx-auto px-6 py-12 space-y-8">
         {sections.map(({ title: sTitle, body }) => (
-          <section key={sTitle} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <section
+            key={sTitle}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
+          >
             <h2 className="text-base font-bold text-gray-800 mb-3">{sTitle}</h2>
             <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{body}</div>
           </section>

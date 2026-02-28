@@ -6,7 +6,7 @@ import { getTags } from '../../api/tags'
 export default function TagsSection() {
   const { data, isLoading } = useQuery({
     queryKey: ['tags'],
-    queryFn:  getTags,
+    queryFn: getTags,
     staleTime: 300_000,
   })
 
@@ -16,7 +16,6 @@ export default function TagsSection() {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
@@ -25,8 +24,12 @@ export default function TagsSection() {
           </div>
           <h2 className="text-[18px] font-extrabold text-slate-900 tracking-tight">Shop by Tags</h2>
         </div>
-        <Link to="/tags" className="flex items-center gap-1 text-sm font-bold text-primary-600 hover:text-primary-700 group transition-colors">
-          View all <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+        <Link
+          to="/tags"
+          className="flex items-center gap-1 text-sm font-bold text-primary-600 hover:text-primary-700 group transition-colors"
+        >
+          View all{' '}
+          <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>
 
@@ -36,7 +39,7 @@ export default function TagsSection() {
           ? Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="skeleton h-10 w-24 rounded-full" />
             ))
-          : tags.map(tag => (
+          : tags.map((tag) => (
               <Link
                 key={tag.id}
                 to={`/tags/${tag.slug}`}
@@ -45,8 +48,7 @@ export default function TagsSection() {
                 <span className="w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
                 {tag.name}
               </Link>
-            ))
-        }
+            ))}
       </div>
     </section>
   )

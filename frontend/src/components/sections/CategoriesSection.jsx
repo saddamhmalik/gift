@@ -4,17 +4,49 @@ import { ArrowRight, LayoutGrid } from 'lucide-react'
 import { getCategories } from '../../api/products'
 
 const THEMES = [
-  { img: 'from-pink-500    to-rose-600',    border: 'from-pink-300    via-rose-200    to-orange-300',  shadow: 'rgba(244,63,94,0.2)'   },
-  { img: 'from-violet-500  to-purple-600',  border: 'from-violet-300  via-purple-200  to-pink-300',    shadow: 'rgba(139,92,246,0.2)'  },
-  { img: 'from-blue-500    to-cyan-600',    border: 'from-blue-300    via-cyan-200    to-teal-300',    shadow: 'rgba(14,165,233,0.2)'  },
-  { img: 'from-emerald-500 to-teal-600',    border: 'from-emerald-300 via-teal-200   to-cyan-300',    shadow: 'rgba(16,185,129,0.2)'  },
-  { img: 'from-amber-400   to-orange-500',  border: 'from-amber-300   via-orange-200 to-rose-300',    shadow: 'rgba(245,158,11,0.2)'  },
-  { img: 'from-red-500     to-pink-600',    border: 'from-red-300     via-pink-200   to-violet-300',  shadow: 'rgba(239,68,68,0.2)'   },
-  { img: 'from-indigo-500  to-blue-600',    border: 'from-indigo-300  via-blue-200   to-sky-300',     shadow: 'rgba(99,102,241,0.2)'  },
-  { img: 'from-teal-500    to-cyan-600',    border: 'from-teal-300    via-cyan-200   to-blue-300',    shadow: 'rgba(20,184,166,0.2)'  },
+  {
+    img: 'from-pink-500    to-rose-600',
+    border: 'from-pink-300    via-rose-200    to-orange-300',
+    shadow: 'rgba(244,63,94,0.2)',
+  },
+  {
+    img: 'from-violet-500  to-purple-600',
+    border: 'from-violet-300  via-purple-200  to-pink-300',
+    shadow: 'rgba(139,92,246,0.2)',
+  },
+  {
+    img: 'from-blue-500    to-cyan-600',
+    border: 'from-blue-300    via-cyan-200    to-teal-300',
+    shadow: 'rgba(14,165,233,0.2)',
+  },
+  {
+    img: 'from-emerald-500 to-teal-600',
+    border: 'from-emerald-300 via-teal-200   to-cyan-300',
+    shadow: 'rgba(16,185,129,0.2)',
+  },
+  {
+    img: 'from-amber-400   to-orange-500',
+    border: 'from-amber-300   via-orange-200 to-rose-300',
+    shadow: 'rgba(245,158,11,0.2)',
+  },
+  {
+    img: 'from-red-500     to-pink-600',
+    border: 'from-red-300     via-pink-200   to-violet-300',
+    shadow: 'rgba(239,68,68,0.2)',
+  },
+  {
+    img: 'from-indigo-500  to-blue-600',
+    border: 'from-indigo-300  via-blue-200   to-sky-300',
+    shadow: 'rgba(99,102,241,0.2)',
+  },
+  {
+    img: 'from-teal-500    to-cyan-600',
+    border: 'from-teal-300    via-cyan-200   to-blue-300',
+    shadow: 'rgba(20,184,166,0.2)',
+  },
 ]
 
-const EMOJI = ['🎁','🛍️','🍕','🎮','✈️','💆','💻','⚽','📚','👗','💎','🏠']
+const EMOJI = ['🎁', '🛍️', '🍕', '🎮', '✈️', '💆', '💻', '⚽', '📚', '👗', '💎', '🏠']
 
 function SkeletonCategoryCard() {
   return (
@@ -33,22 +65,31 @@ function SkeletonCategoryCard() {
 }
 
 export default function CategoriesSection() {
-  const { data, isLoading } = useQuery({ queryKey: ['categories'], queryFn: getCategories, staleTime: 300_000 })
+  const { data, isLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+    staleTime: 300_000,
+  })
   const categories = data?.data ?? []
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-violet-600 flex items-center justify-center shadow-sm flex-shrink-0">
             <LayoutGrid size={17} className="text-white" />
           </div>
-          <h2 className="text-[18px] font-extrabold text-slate-900 tracking-tight">Shop by Category</h2>
+          <h2 className="text-[18px] font-extrabold text-slate-900 tracking-tight">
+            Shop by Category
+          </h2>
         </div>
-        <Link to="/categories" className="flex items-center gap-1 text-sm font-bold text-primary-600 hover:text-primary-700 group transition-colors">
-          View all <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+        <Link
+          to="/categories"
+          className="flex items-center gap-1 text-sm font-bold text-primary-600 hover:text-primary-700 group transition-colors"
+        >
+          View all{' '}
+          <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>
 
@@ -64,8 +105,12 @@ export default function CategoriesSection() {
                   key={cat.id}
                   className={`group p-[1.5px] rounded-2xl bg-gradient-to-br ${theme.border} transition-all duration-300 ease-out hover:-translate-y-1.5`}
                   style={{ boxShadow: `0 4px 20px ${theme.shadow}` }}
-                  onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 12px 36px ${theme.shadow}` }}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow = `0 4px 20px ${theme.shadow}` }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = `0 12px 36px ${theme.shadow}`
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = `0 4px 20px ${theme.shadow}`
+                  }}
                 >
                   <Link
                     to={`/categories/${cat.slug}`}
@@ -88,7 +133,9 @@ export default function CategoriesSection() {
                         <>
                           <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10" />
                           <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-white/10" />
-                          <span className="relative text-4xl group-hover:scale-110 transition-transform duration-300">{emoji}</span>
+                          <span className="relative text-4xl group-hover:scale-110 transition-transform duration-300">
+                            {emoji}
+                          </span>
                         </>
                       )}
                       {/* Top gradient overlay */}
@@ -107,8 +154,7 @@ export default function CategoriesSection() {
                   </Link>
                 </div>
               )
-            })
-        }
+            })}
       </div>
     </section>
   )

@@ -3,31 +3,31 @@ import { ArrowRight } from 'lucide-react'
 
 const PROMOS = [
   {
-    title:    'Earn PayFlex Points',
-    desc:     'Get up to 2% back as PayFlex Points on every eligible purchase. 1 Point = ₹1, redeemable instantly.',
-    cta:      'Learn More',
-    link:     '/loyalty',
+    title: 'Earn PayFlex Points',
+    desc: 'Get up to 2% back as PayFlex Points on every eligible purchase. 1 Point = ₹1, redeemable instantly.',
+    cta: 'Learn More',
+    link: '/loyalty',
     gradient: 'from-primary-600 via-violet-600 to-indigo-700',
-    emoji:    '⭐',
-    pattern:  'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)',
+    emoji: '⭐',
+    pattern: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)',
   },
   {
-    title:    'Exclusive Hot Deals',
-    desc:     'Save big on top brands — plus earn double points on select deals. New offers every day!',
-    cta:      'See Deals',
-    link:     '/hot-deals',
+    title: 'Exclusive Hot Deals',
+    desc: 'Save big on top brands — plus earn double points on select deals. New offers every day!',
+    cta: 'See Deals',
+    link: '/hot-deals',
     gradient: 'from-rose-500 via-red-500 to-orange-600',
-    emoji:    '🔥',
-    pattern:  'radial-gradient(circle at 20% 80%, rgba(255,255,255,0.12) 0%, transparent 60%)',
+    emoji: '🔥',
+    pattern: 'radial-gradient(circle at 20% 80%, rgba(255,255,255,0.12) 0%, transparent 60%)',
   },
   {
-    title:    '500+ Top Brands',
-    desc:     'From daily essentials to travel, entertainment & lifestyle — everything on PayFlex.',
-    cta:      'Explore All',
-    link:     '/categories',
+    title: '500+ Top Brands',
+    desc: 'From daily essentials to travel, entertainment & lifestyle — everything on PayFlex.',
+    cta: 'Explore All',
+    link: '/categories',
     gradient: 'from-emerald-500 via-teal-500 to-cyan-600',
-    emoji:    '🎁',
-    pattern:  'radial-gradient(circle at 50% 10%, rgba(255,255,255,0.12) 0%, transparent 60%)',
+    emoji: '🎁',
+    pattern: 'radial-gradient(circle at 50% 10%, rgba(255,255,255,0.12) 0%, transparent 60%)',
   },
 ]
 
@@ -56,7 +56,11 @@ export default function PromoSection() {
               <h3 className="text-base font-extrabold text-white leading-tight">{title}</h3>
               <p className="text-sm text-white/75 leading-relaxed flex-1">{desc}</p>
               <div className="flex items-center gap-1 text-white/90 font-bold text-sm mt-1 group-hover:gap-2 transition-all">
-                {cta} <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                {cta}{' '}
+                <ArrowRight
+                  size={13}
+                  className="group-hover:translate-x-0.5 transition-transform"
+                />
               </div>
             </div>
           </Link>

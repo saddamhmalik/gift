@@ -4,9 +4,9 @@ import { createOrder, setOrderItem, updateOrderItem, clearOrderItem, getOrder } 
 const OrderContext = createContext(null)
 
 export function OrderProvider({ children }) {
-  const [order, setOrder]     = useState(null)
+  const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState(null)
+  const [error, setError] = useState(null)
 
   // Clear order state when user logs out
   useEffect(() => {
@@ -20,7 +20,9 @@ export function OrderProvider({ children }) {
   }, [])
 
   const getToken = () => order?.order_token ?? localStorage.getItem('order_token')
-  const saveToken = (token) => { if (token) localStorage.setItem('order_token', token) }
+  const saveToken = (token) => {
+    if (token) localStorage.setItem('order_token', token)
+  }
 
   const ensureOrder = useCallback(async () => {
     if (order) return order
@@ -51,42 +53,52 @@ export function OrderProvider({ children }) {
     }
   }, [order])
 
-  const addItem = useCallback(async ({
-    productId, quantity, unitPrice, selectedDenomination,
-    // Gift fields (optional)
-    orderMode, deliveryMode,
-    giftRecipientName, giftRecipientEmail, giftRecipientPhone, giftMessage,
-  }) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const o = await ensureOrder()
-      const payload = {
-        order_token:           o.order_token,
-        product_id:            productId,
-        quantity,
-        unit_price:            unitPrice,
-        selected_denomination: selectedDenomination,
-        order_mode:            orderMode   || 'SELF',
-        delivery_mode:         deliveryMode || (orderMode === 'GIFT' ? 'EMAIL' : 'API'),
+  const addItem = useCallback(
+    async ({
+      productId,
+      quantity,
+      unitPrice,
+      selectedDenomination,
+      // Gift fields (optional)
+      orderMode,
+      deliveryMode,
+      giftRecipientName,
+      giftRecipientEmail,
+      giftRecipientPhone,
+      giftMessage,
+    }) => {
+      setLoading(true)
+      setError(null)
+      try {
+        const o = await ensureOrder()
+        const payload = {
+          order_token: o.order_token,
+          product_id: productId,
+          quantity,
+          unit_price: unitPrice,
+          selected_denomination: selectedDenomination,
+          order_mode: orderMode || 'SELF',
+          delivery_mode: deliveryMode || (orderMode === 'GIFT' ? 'EMAIL' : 'API'),
+        }
+        if (orderMode === 'GIFT') {
+          if (giftRecipientName) payload.gift_recipient_name = giftRecipientName
+          if (giftRecipientEmail) payload.gift_recipient_email = giftRecipientEmail
+          if (giftRecipientPhone) payload.gift_recipient_phone = giftRecipientPhone
+          if (giftMessage) payload.gift_message = giftMessage
+        }
+        const res = await setOrderItem(payload)
+        setOrder(res.data)
+        return res.data
+      } catch (err) {
+        const msg = err.response?.data?.message || 'Failed to add item'
+        setError(msg)
+        throw new Error(msg)
+      } finally {
+        setLoading(false)
       }
-      if (orderMode === 'GIFT') {
-        if (giftRecipientName)  payload.gift_recipient_name  = giftRecipientName
-        if (giftRecipientEmail) payload.gift_recipient_email = giftRecipientEmail
-        if (giftRecipientPhone) payload.gift_recipient_phone = giftRecipientPhone
-        if (giftMessage)        payload.gift_message         = giftMessage
-      }
-      const res = await setOrderItem(payload)
-      setOrder(res.data)
-      return res.data
-    } catch (err) {
-      const msg = err.response?.data?.message || 'Failed to add item'
-      setError(msg)
-      throw new Error(msg)
-    } finally {
-      setLoading(false)
-    }
-  }, [ensureOrder])
+    },
+    [ensureOrder]
+  )
 
   const updateItem = useCallback(async ({ quantity, unitPrice, selectedDenomination }) => {
     setLoading(true)
@@ -125,7 +137,19 @@ export function OrderProvider({ children }) {
   }, [])
 
   return (
-    <OrderContext.Provider value={{ order, loading, error, ensureOrder, refreshOrder, addItem, updateItem, clearItem, resetOrder }}>
+    <OrderContext.Provider
+      value={{
+        order,
+        loading,
+        error,
+        ensureOrder,
+        refreshOrder,
+        addItem,
+        updateItem,
+        clearItem,
+        resetOrder,
+      }}
+    >
       {children}
     </OrderContext.Provider>
   )

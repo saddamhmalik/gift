@@ -67,7 +67,7 @@ If a transaction is cancelled, any payments received will be credited back to th
   },
   {
     title: 'Intellectual Property Rights',
-    body: 'Copyright and other relevant intellectual property rights exist on all text relating to the Company\'s services and the full content of this Website. All content on the Website, including text, graphics, logos, and software, is the property of PayFlex Pvt. Ltd. or its suppliers. Unauthorized use of any intellectual property is prohibited.',
+    body: "Copyright and other relevant intellectual property rights exist on all text relating to the Company's services and the full content of this Website. All content on the Website, including text, graphics, logos, and software, is the property of PayFlex Pvt. Ltd. or its suppliers. Unauthorized use of any intellectual property is prohibited.",
   },
   {
     title: 'Force Majeure',

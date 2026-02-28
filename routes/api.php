@@ -43,6 +43,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/otp/send', [AuthController::class, 'sendOtp']);
         Route::post('/otp/verify', [AuthController::class, 'verifyOtp']);
         Route::post('/google', [AuthController::class, 'google']);
+        Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+        Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     });
 
     // Protected: Orders & payment (logged-in user only)

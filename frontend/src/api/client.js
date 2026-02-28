@@ -3,7 +3,7 @@ import axios from 'axios'
 const api = axios.create({
   // Use relative path so Vite proxy handles it (no CORS). Falls back to localhost for direct runs.
   baseURL: import.meta.env.VITE_API_URL || '/api/v1',
-  headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+  headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
 })
 
 api.interceptors.request.use((config) => {

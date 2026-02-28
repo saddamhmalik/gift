@@ -3,8 +3,8 @@ import { XCircle, ArrowLeft, RefreshCw } from 'lucide-react'
 
 export default function PaymentFailurePage() {
   const [params] = useSearchParams()
-  const reason   = params.get('reason') || 'Payment was not completed.'
-  const orderId  = params.get('order_id')
+  const reason = params.get('reason') || 'Payment was not completed.'
+  const orderId = params.get('order_id')
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4">
@@ -14,12 +14,8 @@ export default function PaymentFailurePage() {
         </div>
 
         <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Payment Failed</h1>
-        <p className="text-gray-500 mb-2 text-sm leading-relaxed">
-          {decodeURIComponent(reason)}
-        </p>
-        {orderId && (
-          <p className="text-xs text-gray-400 mb-8">Order ID: #{orderId}</p>
-        )}
+        <p className="text-gray-500 mb-2 text-sm leading-relaxed">{decodeURIComponent(reason)}</p>
+        {orderId && <p className="text-xs text-gray-400 mb-8">Order ID: #{orderId}</p>}
 
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800 mb-8 text-left">
           <p className="font-semibold mb-1">What happened?</p>

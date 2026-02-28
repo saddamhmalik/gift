@@ -1,15 +1,21 @@
 import api from './client'
 
-export const updateProfile        = (data)  => api.put('/profile', data).then(r => r.data)
-export const uploadAvatar         = (file)  => {
+export const updateProfile = (data) => api.put('/profile', data).then((r) => r.data)
+export const uploadAvatar = (file) => {
   const fd = new FormData()
   fd.append('avatar', file)
-  return api.post('/profile/avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
+  return api
+    .post('/profile/avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    .then((r) => r.data)
 }
-export const removeAvatar         = ()      => api.delete('/profile/avatar').then(r => r.data)
-export const requestEmailChange   = (email) => api.post('/profile/email', { email }).then(r => r.data)
-export const verifyEmailChange    = (token, email) => api.post('/profile/email/verify', { token, email }).then(r => r.data)
-export const resendEmailVerification = ()   => api.post('/profile/email/resend').then(r => r.data)
-export const requestPhoneChange   = (phone) => api.post('/profile/phone', { phone }).then(r => r.data)
-export const verifyPhoneChange    = (otp)   => api.post('/profile/phone/verify', { otp }).then(r => r.data)
-export const changePassword       = (data)  => api.post('/profile/password', data).then(r => r.data)
+export const removeAvatar = () => api.delete('/profile/avatar').then((r) => r.data)
+export const requestEmailChange = (email) =>
+  api.post('/profile/email', { email }).then((r) => r.data)
+export const verifyEmailChange = (token, email) =>
+  api.post('/profile/email/verify', { token, email }).then((r) => r.data)
+export const resendEmailVerification = () => api.post('/profile/email/resend').then((r) => r.data)
+export const requestPhoneChange = (phone) =>
+  api.post('/profile/phone', { phone }).then((r) => r.data)
+export const verifyPhoneChange = (otp) =>
+  api.post('/profile/phone/verify', { otp }).then((r) => r.data)
+export const changePassword = (data) => api.post('/profile/password', data).then((r) => r.data)

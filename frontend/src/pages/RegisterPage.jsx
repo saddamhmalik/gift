@@ -7,12 +7,19 @@ export default function RegisterPage() {
   const { register, loading } = useAuth()
   const navigate = useNavigate()
 
-  const [form, setForm]     = useState({ first_name: '', last_name: '', email: '', phone: '', password: '', password_confirmation: '' })
+  const [form, setForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    password: '',
+    password_confirmation: '',
+  })
   const [showPw, setShowPw] = useState(false)
   const [errors, setErrors] = useState({})
-  const [error, setError]   = useState('')
+  const [error, setError] = useState('')
 
-  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -32,7 +39,9 @@ export default function RegisterPage() {
 
   const inputClass = (k) =>
     `w-full bg-white/8 border text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${
-      fieldErr(k) ? 'border-red-500/50 focus:border-red-500/60' : 'border-white/12 focus:border-primary-500/60'
+      fieldErr(k)
+        ? 'border-red-500/50 focus:border-red-500/60'
+        : 'border-white/12 focus:border-primary-500/60'
     }`
 
   return (
@@ -43,10 +52,12 @@ export default function RegisterPage() {
 
       <div className="w-full max-w-md relative z-10">
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl shadow-black/40">
-
           {/* Logo */}
           <div className="text-center mb-7">
-            <Link to="/" className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-brand items-center justify-center shadow-glow-primary mb-4">
+            <Link
+              to="/"
+              className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-brand items-center justify-center shadow-glow-primary mb-4"
+            >
               <Zap size={22} className="text-white" />
             </Link>
             <p className="text-2xl font-extrabold text-white mb-1">
@@ -56,68 +67,147 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">{error}</div>
+            <div className="mb-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">
+              {error}
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">First Name</label>
-                <input type="text" required value={form.first_name} onChange={set('first_name')} placeholder="John" className={inputClass('first_name')} />
-                {fieldErr('first_name') && <p className="text-xs text-red-400 mt-1">{fieldErr('first_name')}</p>}
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={form.first_name}
+                  onChange={set('first_name')}
+                  placeholder="John"
+                  className={inputClass('first_name')}
+                />
+                {fieldErr('first_name') && (
+                  <p className="text-xs text-red-400 mt-1">{fieldErr('first_name')}</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Last Name</label>
-                <input type="text" required value={form.last_name} onChange={set('last_name')} placeholder="Doe" className={inputClass('last_name')} />
-                {fieldErr('last_name') && <p className="text-xs text-red-400 mt-1">{fieldErr('last_name')}</p>}
+                <input
+                  type="text"
+                  required
+                  value={form.last_name}
+                  onChange={set('last_name')}
+                  placeholder="Doe"
+                  className={inputClass('last_name')}
+                />
+                {fieldErr('last_name') && (
+                  <p className="text-xs text-red-400 mt-1">{fieldErr('last_name')}</p>
+                )}
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Email address</label>
-              <input type="email" required value={form.email} onChange={set('email')} placeholder="you@example.com" className={inputClass('email')} />
-              {fieldErr('email') && <p className="text-xs text-red-400 mt-1">{fieldErr('email')}</p>}
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                Email address
+              </label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={set('email')}
+                placeholder="you@example.com"
+                className={inputClass('email')}
+              />
+              {fieldErr('email') && (
+                <p className="text-xs text-red-400 mt-1">{fieldErr('email')}</p>
+              )}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Phone <span className="text-slate-600">(E.g. +919999999999)</span></label>
-              <input type="tel" required value={form.phone} onChange={set('phone')} placeholder="+919999999999" className={inputClass('phone')} />
-              {fieldErr('phone') && <p className="text-xs text-red-400 mt-1">{fieldErr('phone')}</p>}
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                Phone <span className="text-slate-600">(E.g. +919999999999)</span>
+              </label>
+              <input
+                type="tel"
+                required
+                value={form.phone}
+                onChange={set('phone')}
+                placeholder="+919999999999"
+                className={inputClass('phone')}
+              />
+              {fieldErr('phone') && (
+                <p className="text-xs text-red-400 mt-1">{fieldErr('phone')}</p>
+              )}
             </div>
 
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
               <div className="relative">
-                <input type={showPw ? 'text' : 'password'} required value={form.password} onChange={set('password')} placeholder="Min 8 characters" className={inputClass('password')} />
-                <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                <input
+                  type={showPw ? 'text' : 'password'}
+                  required
+                  value={form.password}
+                  onChange={set('password')}
+                  placeholder="Min 8 characters"
+                  className={inputClass('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                >
                   {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              {fieldErr('password') && <p className="text-xs text-red-400 mt-1">{fieldErr('password')}</p>}
+              {fieldErr('password') && (
+                <p className="text-xs text-red-400 mt-1">{fieldErr('password')}</p>
+              )}
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5">Confirm Password</label>
-              <input type="password" required value={form.password_confirmation} onChange={set('password_confirmation')} placeholder="Repeat password"
-                className="w-full bg-white/8 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all" />
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                required
+                value={form.password_confirmation}
+                onChange={set('password_confirmation')}
+                placeholder="Repeat password"
+                className="w-full bg-white/8 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+              />
             </div>
 
-            <button type="submit" disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-violet-500 text-white font-bold text-sm transition-all shadow-md shadow-primary-900/40 disabled:opacity-50 disabled:cursor-not-allowed mt-2">
-              {loading
-                ? <><Loader2 size={16} className="animate-spin" /> Creating account…</>
-                : <><span>Create Account</span><ArrowRight size={15} /></>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-violet-500 text-white font-bold text-sm transition-all shadow-md shadow-primary-900/40 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Creating account…
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight size={15} />
+                </>
+              )}
             </button>
           </form>
 
           <p className="text-center text-sm text-slate-500 mt-6">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary-400 font-semibold hover:text-primary-300">Sign in</Link>
+            <Link to="/login" className="text-primary-400 font-semibold hover:text-primary-300">
+              Sign in
+            </Link>
           </p>
         </div>
 
         <p className="text-center mt-5">
-          <Link to="/" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">← Back to PayFlex</Link>
+          <Link to="/" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+            ← Back to PayFlex
+          </Link>
         </p>
       </div>
     </div>

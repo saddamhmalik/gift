@@ -8,33 +8,38 @@ import { SkeletonCard } from '../components/ui/Skeleton'
 
 export default function TagPage() {
   const { slug } = useParams()
-  const [page, setPage]   = useState(1)
+  const [page, setPage] = useState(1)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['tag', slug, page],
-    queryFn:  () => getTagProducts(slug, page),
+    queryFn: () => getTagProducts(slug, page),
     keepPreviousData: true,
     staleTime: 60_000,
   })
 
-  const tag      = data?.data?.tag
+  const tag = data?.data?.tag
   const products = data?.data?.products?.data ?? []
-  const meta     = data?.data?.products?.meta
+  const meta = data?.data?.products?.meta
 
   const tagColor = '#8b5cf6'
 
-  if (isError) return (
-    <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-      <p className="text-slate-500">Failed to load products for this tag.</p>
-      <Link to="/" className="text-primary-600 font-semibold mt-4 inline-block">← Back to home</Link>
-    </div>
-  )
+  if (isError)
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+        <p className="text-slate-500">Failed to load products for this tag.</p>
+        <Link to="/" className="text-primary-600 font-semibold mt-4 inline-block">
+          ← Back to home
+        </Link>
+      </div>
+    )
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-
       {/* Back */}
-      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 transition-colors mb-6">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-primary-600 transition-colors mb-6"
+      >
         <ArrowLeft size={14} /> Back to home
       </Link>
 
@@ -65,10 +70,11 @@ export default function TagPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-          : products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)
-        }
+          : products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
         {!isLoading && products.length === 0 && (
-          <p className="col-span-3 text-center text-slate-400 py-16">No products found for this tag.</p>
+          <p className="col-span-3 text-center text-slate-400 py-16">
+            No products found for this tag.
+          </p>
         )}
       </div>
 
@@ -76,7 +82,7 @@ export default function TagPage() {
       {meta && meta.last_page > 1 && (
         <div className="flex items-center justify-center gap-3 mt-10">
           <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
             className="w-9 h-9 rounded-full border border-slate-200 flex items-center justify-center hover:border-primary-300 hover:text-primary-600 disabled:opacity-40 transition-all"
           >
@@ -88,7 +94,7 @@ export default function TagPage() {
           </span>
 
           <button
-            onClick={() => setPage(p => Math.min(meta.last_page, p + 1))}
+            onClick={() => setPage((p) => Math.min(meta.last_page, p + 1))}
             disabled={page === meta.last_page}
             className="w-9 h-9 rounded-full border border-slate-200 flex items-center justify-center hover:border-primary-300 hover:text-primary-600 disabled:opacity-40 transition-all"
           >

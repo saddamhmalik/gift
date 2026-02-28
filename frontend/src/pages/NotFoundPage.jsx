@@ -9,7 +9,9 @@ export default function NotFoundPage() {
       <p className="text-gray-500 mb-8 max-w-xs">
         Looks like this gift got lost in transit. Let's get you back home.
       </p>
-      <Link to="/" className="btn-primary">Go to Homepage</Link>
+      <Link to="/" className="btn-primary">
+        Go to Homepage
+      </Link>
     </div>
   )
 }
