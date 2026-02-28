@@ -2,6 +2,7 @@
 
 namespace App\Services\Woohoo;
 
+use App\Jobs\FetchActivatedCardsJob;
 use App\Models\Order;
 use App\Services\WoohooClient;
 use Illuminate\Support\Facades\Log;
@@ -18,7 +19,8 @@ class WoohooOrderStatusService
 
     public function __construct(
         protected WoohooClient $client,
-        protected WoohooOrderService $woohooOrderService
+        protected WoohooOrderService $woohooOrderService,
+        protected WoohooActivatedCardsService $activatedCardsService,
     ) {}
 
     /**
@@ -107,16 +109,29 @@ class WoohooOrderStatusService
             ]);
 
             if (in_array($status, self::TERMINAL_STATUSES, true)) {
-                $cardDetails = $this->extractCardDetails($data);
                 $cardDetailsStored = false;
-                if ($cardDetails !== null) {
-                    $this->woohooOrderService->storeCardDetailsEncrypted($order, $cardDetails);
-                    $cardDetailsStored = true;
+
+                // Use the Activated Cards API for the canonical, richest card data
+                if ($status === self::STATUS_COMPLETE || $status === 'COMPLETED') {
+                    $activated = $this->activatedCardsService->fetchAndNormalize($woohooOrderId);
+
+                    if ($activated['success'] && ! empty($activated['cards'])) {
+                        $this->woohooOrderService->storeCardDetailsEncrypted($order, $activated);
+                        $cardDetailsStored = true;
+                    } else {
+                        // Cards not ready yet or API error — dispatch a retrying job
+                        FetchActivatedCardsJob::dispatch($order, 0)->delay(now()->addSeconds(5));
+                        Log::info('Woohoo COMPLETE: Activated Cards not ready, FetchActivatedCardsJob dispatched', [
+                            'order_id'    => $order->id,
+                            'http_status' => $activated['http_status'],
+                        ]);
+                    }
                 }
+
                 return [
-                    'status' => $status,
+                    'status'              => $status,
                     'card_details_stored' => $cardDetailsStored,
-                    'attempts' => $attempts,
+                    'attempts'            => $attempts,
                 ];
             }
 

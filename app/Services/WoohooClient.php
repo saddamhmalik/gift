@@ -155,23 +155,44 @@ class WoohooClient
             return Http::response(null, 401);
         }
 
-        $url = $this->baseUrl . $path;
+        // Per Woohoo OAuth2.0 docs (GET with query params):
+        //   Step B: sort query params alphabetically
+        //   Step C: rawurlencode the COMPLETE URL (including sorted query params)
+        //   Step D: base string = "GET&{C}"
+        //   Signature = HMAC-SHA512(D, clientSecret)
+        //
+        // Extract any query string embedded directly in $path (e.g. /foo?a=1&b=2)
+        [$cleanPath, $inlineQuery] = array_pad(explode('?', $path, 2), 2, null);
+
+        // Merge inline + explicit query params, then sort by key (ASCII order)
+        $allQuery = [];
+        if ($inlineQuery !== null && $inlineQuery !== '') {
+            parse_str($inlineQuery, $parsedInline);
+            $allQuery = array_merge($allQuery, $parsedInline);
+        }
         if (! empty($query)) {
-            ksort($query);
-            $url .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+            $allQuery = array_merge($allQuery, $query);
         }
 
-        $encodedUrl = rawurlencode($url);
+        // Build the request URL with alphabetically-sorted query params (Step B)
+        $requestUrl = $this->baseUrl . $cleanPath;
+        if (! empty($allQuery)) {
+            ksort($allQuery);   // ASCII sort per Woohoo spec
+            $requestUrl .= '?' . http_build_query($allQuery, '', '&', PHP_QUERY_RFC3986);
+        }
+
+        // Signature includes the FULL URL (with sorted query params) — Step C, D
+        $encodedUrl = rawurlencode($requestUrl);
         $baseString = 'GET&' . $encodedUrl;
-        $signature = hash_hmac('sha512', $baseString, $this->clientSecret);
+        $signature  = hash_hmac('sha512', $baseString, $this->clientSecret);
 
         $result = Http::withHeaders(array_merge($this->getOAuthHeaders(), [
             'Authorization' => 'Bearer ' . $token,
-            'Content-Type' => 'application/json',
-            'Accept' => '*/*',
-            'dateAtClient' => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
-            'signature' => $signature,
-        ]))->get($url);
+            'Content-Type'  => 'application/json',
+            'Accept'        => '*/*',
+            'dateAtClient'  => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
+            'signature'     => $signature,
+        ]))->get($requestUrl);
 
         return $result instanceof PromiseInterface ? $result->wait() : $result;
     }

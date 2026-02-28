@@ -17,8 +17,9 @@ return [
         'categories' => '/rest/v3/catalog/categories',
         'category_products' => '/rest/v3/catalog/categories',
         'product' => '/rest/v3/catalog/products',
-        'orders' => '/rest/v3/orders',
-        'order_status' => '/rest/v3/orders',
+        'orders'          => '/rest/v3/orders',
+        'order_status'    => '/rest/v3/orders',
+        'activated_cards' => '/rest/v3/order', // append /{orderId}/cards/
     ],
 
     'org_short_code' => env('WOOHOO_ORG_SHORT_CODE', 'ONEZERO'),

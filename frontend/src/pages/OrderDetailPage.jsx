@@ -1,7 +1,12 @@
 import { useParams, useSearchParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle, Clock, XCircle, Copy, Gift, ArrowLeft, Loader2, RefreshCw, CreditCard } from 'lucide-react'
-import { getOrderById } from '../api/orders'
+import {
+  CheckCircle, Clock, XCircle, Copy, Gift, ArrowLeft,
+  Loader2, RefreshCw, CreditCard, ExternalLink, Info,
+  Barcode, AlertCircle, Eye, EyeOff,
+} from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { getOrderById, fetchOrderCards } from '../api/orders'
 
 const STATUS_CONFIG = {
   completed: { Icon: CheckCircle, color: 'text-green-500',  bg: 'bg-green-50',  border: 'border-green-200', label: 'Completed'  },
@@ -9,75 +14,131 @@ const STATUS_CONFIG = {
   cancelled: { Icon: XCircle,     color: 'text-red-500',    bg: 'bg-red-50',    border: 'border-red-200',   label: 'Cancelled'  },
 }
 
-/**
- * Displays a single gift card from the Woohoo `cards` array.
- *
- * Woohoo returns 3 card variants (all use the same fields, labels differ):
- *  a) Standard          — cardNumber + cardPin
- *  b) Amazon / CLAIMCODE— cardNumber (Gift Card ID) + cardPin (14-char Gift Card Code)
- *  c) BMS / VOUCHERCODE — cardNumber only (no PIN)
- *
- * Woohoo always provides a `labels` object that tells us the correct display
- * name for each field (e.g. "Gift Card Number", "Gift Card Code", "Voucher Code").
- * We use those labels directly so the UI adapts to every variant automatically.
- */
-function CardDetail({ card }) {
-  const copy = (val) => { navigator.clipboard.writeText(String(val)).catch(() => {}) }
+/** Small copy-to-clipboard button */
+function CopyBtn({ value }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = () => {
+    navigator.clipboard.writeText(String(value)).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {})
+  }
+  return (
+    <button
+      onClick={handleCopy}
+      title="Copy"
+      className="text-gray-400 hover:text-white transition-colors ml-3 flex-shrink-0"
+    >
+      {copied
+        ? <CheckCircle size={14} className="text-green-400" />
+        : <Copy size={14} />}
+    </button>
+  )
+}
 
-  const cardNumber     = card.cardNumber     || card.card_number     || null
-  const cardPin        = card.cardPin        || card.card_pin        || card.pin  || null
-  const activationCode = card.activationCode || card.activation_code || null
-  const activationUrl  = card.activationUrl  || card.activation_url  || null
-
-  // Use labels from the Woohoo response when available, with sensible fallbacks
-  const labelNumber  = card.labels?.cardNumber     || 'Gift Card Number'
-  const labelPin     = card.labels?.cardPin        || 'Gift Card PIN'
-  const labelActCode = card.labels?.activationCode || 'Activation Code'
-
-  // Validity — Woohoo sends ISO 8601; show a readable date
-  const validityRaw = card.validity || card.expiryDate || null
-  const validityStr = validityRaw
-    ? (() => { try { return new Date(validityRaw).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) } catch { return validityRaw } })()
-    : null
-
-  const Field = ({ label, value }) => (
+/** A single labelled field row with optional hide/show and copy button */
+function Field({ label, value, mono = true, secret = false }) {
+  const [revealed, setRevealed] = useState(false)
+  if (!value) return null
+  const displayValue = secret && !revealed ? '•'.repeat(Math.min(String(value).length, 8)) : value
+  return (
     <div className="mb-3">
       <p className="text-xs text-gray-400 mb-1">{label}</p>
-      <div className="flex items-center justify-between bg-white/10 rounded-xl px-3 py-2.5">
-        <span className="font-mono text-sm tracking-wider break-all">{value}</span>
-        <button
-          onClick={() => copy(value)}
-          title="Copy"
-          className="text-gray-400 hover:text-white transition-colors ml-3 flex-shrink-0"
-        >
-          <Copy size={14} />
-        </button>
+      <div className="flex items-center justify-between bg-white/10 rounded-xl px-3 py-2.5 gap-2">
+        <span className={`text-sm break-all select-${secret && !revealed ? 'none' : 'all'} ${mono ? 'font-mono tracking-wider' : ''}`}>
+          {displayValue}
+        </span>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {secret && (
+            <button
+              onClick={() => setRevealed(r => !r)}
+              title={revealed ? 'Hide' : 'Show'}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              {revealed
+                ? <EyeOff size={14} />
+                : <Eye size={14} />}
+            </button>
+          )}
+          <CopyBtn value={value} />
+        </div>
       </div>
     </div>
   )
+}
+
+/**
+ * Displays a single gift card from the Woohoo Activated Cards API response.
+ *
+ * Handles all card variants:
+ *  a) Standard          — cardNumber + cardPin
+ *  b) Amazon / CLAIMCODE— cardNumber (Gift Card ID) + cardPin (14-char Gift Card Code)
+ *  c) BMS / VOUCHERCODE — cardNumber only (no PIN)
+ *  d) Barcode cards     — barcode field + formats array
+ *  e) Activation code   — activationCode + activationUrl
+ *
+ * Uses `labels` from Woohoo for accurate field names, with sensible fallbacks.
+ */
+function CardDetail({ card }) {
+  const cardNumber     = card.cardNumber     || card.card_number     || null
+  const cardPin        = card.cardPin        || card.card_pin        || card.pin || null
+  const activationCode = card.activationCode || card.activation_code || null
+  const activationUrl  = card.activationUrl  || card.activation_url  || null
+  const barcode        = card.barcode        || null
+  const sequenceNumber = card.sequenceNumber || null
+
+  // Use Woohoo-provided labels; fall back gracefully
+  const labelNumber    = card.labels?.cardNumber     || 'Gift Card Number'
+  const labelPin       = card.labels?.cardPin        || 'Gift Card PIN'
+  const labelActCode   = card.labels?.activationCode || 'Activation Code'
+  const labelSeq       = card.labels?.sequenceNumber || 'Sequence Number'
+  const labelValidity  = card.labels?.validity       || 'Valid Till'
+
+  const validityRaw = card.validity || card.expiryDate || null
+  const validityStr = validityRaw
+    ? (() => {
+        try {
+          return new Date(validityRaw).toLocaleDateString('en-IN', {
+            day: 'numeric', month: 'long', year: 'numeric',
+          })
+        } catch { return validityRaw }
+      })()
+    : null
+
+  // Special instruction: Woohoo sends it as an object {label, url} or an empty string
+  const specialInstr  = card.specialInstruction
+  const hasSpecialInstr = specialInstr && (
+    (typeof specialInstr === 'object' && specialInstr?.label) ||
+    (typeof specialInstr === 'string' && specialInstr.length > 0)
+  )
+
+  const balanceInstr = card.balanceEnquiryInstruction || null
 
   return (
     <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-5 text-white shadow-xl">
+      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <CreditCard size={18} className="text-primary-400" />
           <span className="text-sm font-semibold text-gray-300">
-            {card.productName || 'Gift Card Details'}
+            {card.productName || 'Gift Card'}
           </span>
         </div>
-        <Gift size={18} className="text-primary-400" />
+        {card.amount && (
+          <span className="text-sm font-bold text-white bg-white/10 rounded-lg px-2.5 py-1">
+            ₹ {Number(card.amount).toLocaleString('en-IN')}
+          </span>
+        )}
       </div>
 
-      {/* Card Number — always shown when present */}
-      {cardNumber && <Field label={labelNumber} value={cardNumber} />}
+      {/* Core card credentials */}
+      {cardNumber     && <Field label={labelNumber}  value={cardNumber} />}
+      {cardPin        && <Field label={labelPin}      value={cardPin}         secret />}
+      {activationCode && !cardPin && <Field label={labelActCode} value={activationCode} secret />}
+      {sequenceNumber && <Field label={labelSeq}      value={sequenceNumber} />}
+      {barcode        && <Field label="Barcode"       value={barcode} />}
 
-      {/* PIN — hidden for card-number-only variants (e.g. BMS / VOUCHERCODE) */}
-      {cardPin && <Field label={labelPin} value={cardPin} />}
-
-      {/* Activation Code — alternative to PIN for some products */}
-      {activationCode && !cardPin && <Field label={labelActCode} value={activationCode} />}
-
-      {/* Activation URL — e.g. Woohoo claim link */}
+      {/* Activation URL */}
       {activationUrl && (
         <div className="mb-3">
           <p className="text-xs text-gray-400 mb-1">Activation Link</p>
@@ -85,42 +146,112 @@ function CardDetail({ card }) {
             href={activationUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary-300 hover:text-primary-200 text-xs underline break-all"
+            className="inline-flex items-center gap-1.5 text-primary-300 hover:text-primary-200 text-xs underline break-all"
           >
-            {activationUrl}
+            Activate your card <ExternalLink size={11} />
           </a>
         </div>
       )}
 
-      {card.amount && (
-        <p className="text-xs text-gray-400 mt-1">
-          Value: <span className="text-gray-200 font-semibold">₹ {Number(card.amount).toLocaleString()}</span>
+      {/* Validity */}
+      {validityStr && (
+        <p className="text-xs text-gray-400 mt-2">
+          {labelValidity}: <span className="text-gray-200 font-semibold">{validityStr}</span>
         </p>
       )}
-      {validityStr && (
-        <p className="text-xs text-gray-400 mt-1">
-          Valid till: <span className="text-gray-300">{validityStr}</span>
-        </p>
+
+      {/* Balance enquiry instruction */}
+      {balanceInstr && (
+        <div className="mt-3 flex items-start gap-2 bg-white/5 rounded-xl p-3">
+          <Info size={13} className="text-blue-400 mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-gray-300 leading-relaxed">{balanceInstr}</p>
+        </div>
+      )}
+
+      {/* Special instruction */}
+      {hasSpecialInstr && (
+        <div className="mt-3 flex items-start gap-2 bg-amber-500/10 rounded-xl p-3">
+          <AlertCircle size={13} className="text-amber-400 mt-0.5 flex-shrink-0" />
+          {typeof specialInstr === 'object' ? (
+            <p className="text-xs text-gray-300 leading-relaxed">
+              {specialInstr.url
+                ? <a href={specialInstr.url} target="_blank" rel="noopener noreferrer"
+                    className="underline text-amber-300 hover:text-amber-200">
+                    {specialInstr.label}
+                  </a>
+                : specialInstr.label}
+            </p>
+          ) : (
+            <p className="text-xs text-gray-300 leading-relaxed">{specialInstr}</p>
+          )}
+        </div>
       )}
     </div>
   )
 }
 
+/** Delivery summary badge row */
+function DeliveryBadge({ delivery }) {
+  if (!delivery?.summary) return null
+  const s = delivery.summary
+  return (
+    <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {[
+        { label: 'Sent',      val: s.sent,       color: 'text-green-600' },
+        { label: 'Delivered', val: s.delivered,   color: 'text-emerald-600' },
+        { label: 'In Progress', val: s.inProgress, color: 'text-amber-600' },
+        { label: 'Failed',    val: s.failed,     color: 'text-red-500' },
+      ].map(({ label, val, color }) => (
+        <div key={label} className="rounded-xl bg-gray-50 border border-gray-100 p-2.5 text-center">
+          <p className={`text-base font-bold ${color}`}>{val ?? 0}</p>
+          <p className="text-xs text-gray-400">{label}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function OrderDetailPage() {
-  const { id }      = useParams()
-  const [params]    = useSearchParams()
-  const payStatus   = params.get('payment')
+  const { id }    = useParams()
+  const [params]  = useSearchParams()
+  const payStatus = params.get('payment')
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey:  ['order', id],
     queryFn:   () => getOrderById(id),
     staleTime: 10_000,
     refetchInterval: (query) => {
-      // Keep polling while order is still pending (TanStack Query v5 callback)
       const order = query?.state?.data?.data
       return order?.status === 'pending' ? 8000 : false
     },
   })
+
+  // Live card data fetched directly from the /cards endpoint
+  const [liveCards, setLiveCards]           = useState(null)
+  const [liveDelivery, setLiveDelivery]     = useState(null)
+  const [liveMode, setLiveMode]             = useState(null)
+  const [cardsFetching, setCardsFetching]   = useState(false)
+  const [cardsError, setCardsError]         = useState(null)
+
+  const handleFetchCards = useCallback(async () => {
+    setCardsFetching(true)
+    setCardsError(null)
+    try {
+      const res = await fetchOrderCards(id)
+      const payload = res?.data
+      if (payload?.cards?.length) {
+        setLiveCards(payload.cards)
+        setLiveDelivery(payload.card_delivery ?? null)
+        setLiveMode(payload.delivery_mode ?? null)
+      } else {
+        setCardsError('Card details are not yet available. Please try again in a moment.')
+      }
+    } catch {
+      setCardsError('Could not fetch card details. Please try again.')
+    } finally {
+      setCardsFetching(false)
+    }
+  }, [id])
 
   const order = data?.data
 
@@ -139,7 +270,11 @@ export default function OrderDetailPage() {
   )
 
   const { Icon, color, bg, border, label } = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
-  const cards = order.card_details
+
+  // Prefer live-fetched cards over the TanStack Query cached order data
+  const rawCards    = liveCards ?? order.card_details
+  const cardArr     = rawCards ? (Array.isArray(rawCards) ? rawCards : [rawCards]) : []
+  const deliveryMode = liveMode ?? order.delivery_mode
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
@@ -182,7 +317,10 @@ export default function OrderDetailPage() {
             </h1>
             {order.created_at && (
               <p className="text-xs text-gray-400 mt-1">
-                {new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {new Date(order.created_at).toLocaleDateString('en-IN', {
+                  day: 'numeric', month: 'long', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit',
+                })}
               </p>
             )}
           </div>
@@ -212,7 +350,16 @@ export default function OrderDetailPage() {
                 <span>{order.currency_code} {Number(order.item.unit_price)?.toLocaleString()} each</span>
               </div>
             </div>
-            <p className="font-bold text-gray-900 text-sm">{order.currency_code} {Number(order.total_amount)?.toLocaleString()}</p>
+            <div className="text-right">
+              <p className="font-bold text-gray-900 text-sm">
+                {order.currency_code} {Number(order.total_amount)?.toLocaleString()}
+              </p>
+              {order.points_used > 0 && (
+                <p className="text-xs text-amber-600 mt-0.5">
+                  -{order.points_used} pts applied
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -220,45 +367,108 @@ export default function OrderDetailPage() {
       {/* Delivery status */}
       <div className="card p-5 mb-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Delivery Status</h3>
-        <div className="flex items-center gap-2 text-sm">
-          <span className={`w-2.5 h-2.5 rounded-full ${order.delivery_status === 'fulfilled' ? 'bg-green-500' : order.delivery_status === 'failed' ? 'bg-red-500' : 'bg-amber-400'}`} />
-          <span className="capitalize font-medium text-gray-700">{order.delivery_status ?? 'Pending'}</span>
-          {order.woohoo_refno && <span className="text-gray-400 ml-2 font-mono text-xs">Ref: {order.woohoo_refno}</span>}
+        <div className="flex items-center gap-2 text-sm flex-wrap">
+          <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+            order.delivery_status === 'fulfilled' ? 'bg-green-500'
+            : order.delivery_status === 'failed' ? 'bg-red-500'
+            : 'bg-amber-400'
+          }`} />
+          <span className="capitalize font-medium text-gray-700">
+            {order.delivery_status ?? 'Pending'}
+          </span>
+          {order.woohoo_refno && (
+            <span className="text-gray-400 ml-1 font-mono text-xs">
+              Ref: {order.woohoo_refno}
+            </span>
+          )}
+          {deliveryMode && deliveryMode !== 'API' && (
+            <span className="ml-auto inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-2 py-0.5">
+              <Barcode size={12} /> Delivered via {deliveryMode.toLowerCase()}
+            </span>
+          )}
         </div>
+
+        {/* Delivery channel summary (from Activated Cards API) */}
+        {(liveDelivery ?? order.card_delivery) && <DeliveryBadge delivery={liveDelivery ?? order.card_delivery} />}
 
         {order.status === 'pending' && (
           <div className="flex items-center gap-2 mt-3">
             <Loader2 size={14} className="text-amber-500 animate-spin" />
             <span className="text-xs text-amber-600">Processing your gift card…</span>
-            <button onClick={() => refetch()} disabled={isFetching} className="ml-auto text-xs text-primary-500 flex items-center gap-1 hover:text-primary-600">
-              <RefreshCw size={12} className={isFetching ? 'animate-spin' : ''} /> Refresh
+            <button onClick={handleFetchCards} disabled={cardsFetching}
+              className="ml-auto text-xs text-primary-500 flex items-center gap-1 hover:text-primary-600">
+              <RefreshCw size={12} className={cardsFetching ? 'animate-spin' : ''} /> Refresh
             </button>
           </div>
         )}
+        {order.status !== 'pending' && (
+          <button onClick={handleFetchCards} disabled={cardsFetching}
+            className="mt-3 flex items-center gap-1 text-xs text-gray-400 hover:text-primary-500 transition-colors">
+            <RefreshCw size={11} className={cardsFetching ? 'animate-spin' : ''} /> Refresh
+          </button>
+        )}
       </div>
 
-      {/* Card details */}
-      {cards && (Array.isArray(cards) ? cards : [cards]).length > 0 && (
+      {/* EMAIL/SMS delivery notice — card details not returned for these modes */}
+      {deliveryMode && deliveryMode !== 'API' && (
+        <div className="card p-5 mb-4 flex items-start gap-3">
+          <Info size={18} className="text-blue-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-gray-700 text-sm">Card delivered via {deliveryMode}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Your gift card details have been sent directly to your email/phone by Woohoo.
+              Please check your inbox or messages.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Gift card details */}
+      {cardArr.length > 0 && (
         <div className="mb-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-            <Gift size={15} className="text-primary-500" /> Your Gift Card(s)
+            <Gift size={15} className="text-primary-500" />
+            Your Gift Card{cardArr.length > 1 ? `s (${cardArr.length})` : ''}
           </h3>
           <div className="space-y-3">
-            {(Array.isArray(cards) ? cards : [cards]).map((card, i) => (
-              <CardDetail key={i} card={card} />
+            {cardArr.map((card, i) => (
+              <CardDetail key={card.cardId ?? i} card={card} />
             ))}
           </div>
           <p className="text-xs text-gray-400 mt-3 text-center">
-            Save these details — they will not be shown again if you lose them.
+            Save these details safely — they will not be resent.
           </p>
         </div>
       )}
 
-      {/* Empty state — pending delivery */}
-      {order.status === 'completed' && !cards && (
+      {/* Empty state — completed but no cards (email/SMS delivery, or still processing) */}
+      {order.status === 'completed' && cardArr.length === 0 && !deliveryMode && (
         <div className="card p-6 text-center text-gray-500">
           <Gift size={32} className="mx-auto mb-3 text-gray-300" />
-          <p className="text-sm">Card details are being processed. Please refresh in a moment.</p>
+          <p className="text-sm font-medium text-gray-700">Card details are being processed.</p>
+          <p className="text-xs text-gray-400 mt-1">Click the button below to fetch them now.</p>
+          {cardsError && (
+            <p className="mt-2 text-xs text-red-500">{cardsError}</p>
+          )}
+          <button onClick={handleFetchCards} disabled={cardsFetching}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary-500 px-4 py-2 text-xs font-semibold text-white hover:bg-primary-600 disabled:opacity-50 transition-colors">
+            <RefreshCw size={12} className={cardsFetching ? 'animate-spin' : ''} /> Refresh Card Details
+          </button>
+        </div>
+      )}
+
+      {/* Loyalty points earned */}
+      {order.points_earned > 0 && (
+        <div className="card p-4 mb-4 flex items-center gap-3">
+          <span className="text-2xl">⭐</span>
+          <div>
+            <p className="text-sm font-semibold text-amber-700">
+              You earned {Number(order.points_earned).toLocaleString()} PayFlex Points!
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Points are valid for 30 days and will appear in your balance shortly.
+            </p>
+          </div>
         </div>
       )}
     </div>

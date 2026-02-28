@@ -6,15 +6,20 @@ use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\V1\OrderResource;
 use App\Repositories\OrderRepository;
 use App\Services\Order\OrderService;
+use App\Services\Woohoo\WoohooActivatedCardsService;
+use App\Services\Woohoo\WoohooOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use InvalidArgumentException;
 
 class OrderController extends Controller
 {
     public function __construct(
         protected OrderService $orderService,
-        protected OrderRepository $orderRepository
+        protected OrderRepository $orderRepository,
+        protected WoohooActivatedCardsService $activatedCardsService,
+        protected WoohooOrderService $woohooOrderService,
     ) {}
 
     /**
@@ -141,6 +146,70 @@ class OrderController extends Controller
         }
 
         return $this->success(new OrderResource($order));
+    }
+
+    /**
+     * GET /api/v1/order/{order}/cards
+     *
+     * Fetch activated card details for a completed order.
+     * Tries the Woohoo Activated Cards API first (fresh, live data).
+     * Falls back to the encrypted stored data if Woohoo is unavailable.
+     * Returns the cards array directly — does NOT go through OrderResource,
+     * so it works regardless of any server-side caching of old PHP bytecode.
+     */
+    public function fetchCards(Request $request, int $order): JsonResponse
+    {
+        $orderModel = $this->orderRepository->findByIdAndUser($order, $request->user());
+        if (! $orderModel) {
+            return $this->error('Order not found', 404);
+        }
+
+        $cards        = null;
+        $deliveryMode = null;
+        $delivery     = null;
+
+        // ── 1. Try live Woohoo Activated Cards API ────────────────────────
+        if ($orderModel->woohoo_order_id) {
+            $result = $this->activatedCardsService->fetchAndNormalize($orderModel->woohoo_order_id);
+            if ($result['success'] && ! empty($result['cards'])) {
+                // Persist the fresh data so future loads are correct
+                $this->woohooOrderService->storeCardDetailsEncrypted($orderModel, $result);
+                $cards        = $result['cards'];
+                $deliveryMode = $result['deliveryMode'] ?? null;
+                $delivery     = $result['delivery']     ?? null;
+            }
+        }
+
+        // ── 2. Fall back to stored encrypted data ─────────────────────────
+        if ($cards === null && $orderModel->card_details_encrypted) {
+            try {
+                $raw     = Crypt::decryptString($orderModel->card_details_encrypted);
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    if (isset($decoded['cards'])) {
+                        // New format: full Activated Cards API response
+                        $cards        = $decoded['cards'];
+                        $deliveryMode = $decoded['deliveryMode'] ?? null;
+                        $delivery     = $decoded['delivery']     ?? null;
+                    } else {
+                        // Legacy format: plain array of card objects
+                        $cards = $decoded;
+                    }
+                }
+            } catch (\Throwable) {
+                // Decryption failed
+            }
+        }
+
+        if (empty($cards)) {
+            return $this->error('Card details are not yet available. Please try again in a moment.', 404);
+        }
+
+        return $this->success([
+            'cards'         => $cards,
+            'delivery_mode' => $deliveryMode,
+            'card_delivery' => $delivery,
+        ]);
     }
 
     /**

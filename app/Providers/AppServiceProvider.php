@@ -9,6 +9,7 @@ use App\Repositories\ProductRepository;
 use App\Repositories\TagRepository;
 use App\Services\WoohooClient;
 use App\Services\Woohoo\WoohooOrderPayloadBuilder;
+use App\Services\Woohoo\WoohooActivatedCardsService;
 use App\Services\Woohoo\WoohooOrderService;
 use App\Services\Woohoo\WoohooOrderStatusService;
 use App\Services\Woohoo\WoohooRefnoGenerator;
@@ -23,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(WoohooClient::class, fn () => WoohooClient::fromConfig());
         $this->app->singleton(WoohooRefnoGenerator::class, fn () => WoohooRefnoGenerator::fromConfig());
         $this->app->singleton(WoohooOrderPayloadBuilder::class);
+        $this->app->singleton(WoohooActivatedCardsService::class);
         $this->app->singleton(WoohooOrderService::class);
         $this->app->singleton(WoohooOrderStatusService::class);
         $this->app->singleton(FulfillOrderViaWoohooService::class);

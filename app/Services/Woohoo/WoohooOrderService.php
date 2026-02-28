@@ -3,8 +3,10 @@
 namespace App\Services\Woohoo;
 
 use App\Exceptions\Woohoo\WoohooOrderException;
+use App\Jobs\FetchActivatedCardsJob;
 use App\Models\Order;
 use App\Services\WoohooClient;
+use App\Services\Woohoo\WoohooActivatedCardsService;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 
@@ -17,7 +19,8 @@ class WoohooOrderService
     public function __construct(
         protected WoohooClient $client,
         protected WoohooRefnoGenerator $refnoGenerator,
-        protected WoohooOrderPayloadBuilder $payloadBuilder
+        protected WoohooOrderPayloadBuilder $payloadBuilder,
+        protected WoohooActivatedCardsService $activatedCardsService,
     ) {}
 
     /**
@@ -59,17 +62,35 @@ class WoohooOrderService
             'status' => $status === 201 ? Order::STATUS_COMPLETED : Order::STATUS_PENDING,
         ]);
 
-        if ($status === 201 && ! empty($body['cardDetails'] ?? $body['card_details'] ?? null)) {
-            $cardDetails = $body['cardDetails'] ?? $body['card_details'];
-            $this->storeCardDetailsEncrypted($order, $cardDetails);
+        // On synchronous fulfillment (201), try Activated Cards API immediately;
+        // if cards aren't ready yet (409) dispatch a retrying job so fulfilment is never blocked.
+        if ($status === 201 && $woohooOrderId) {
+            $activated = $this->activatedCardsService->fetchAndNormalize($woohooOrderId);
+
+            if ($activated['success'] && ! empty($activated['cards'])) {
+                $this->storeCardDetailsEncrypted($order, $activated);
+            } elseif ($activated['http_status'] === WoohooActivatedCardsService::STATUS_PROCESSING) {
+                // Cards still activating – dispatch job to retry with back-off
+                FetchActivatedCardsJob::dispatch($order, 0)->delay(now()->addSeconds(5));
+                Log::info('Woohoo 201: cards still processing, FetchActivatedCardsJob dispatched', [
+                    'order_id' => $order->id,
+                ]);
+            } else {
+                // Unexpected error – dispatch job to attempt once more
+                FetchActivatedCardsJob::dispatch($order, 0)->delay(now()->addSeconds(10));
+                Log::warning('Woohoo 201: Activated Cards API error, FetchActivatedCardsJob dispatched', [
+                    'order_id'    => $order->id,
+                    'http_status' => $activated['http_status'],
+                ]);
+            }
         }
 
         return [
-            'status' => $status,
-            'refno' => $refno,
+            'status'          => $status,
+            'refno'           => $refno,
             'woohoo_order_id' => $woohooOrderId,
-            'card_details' => $status === 201 ? ($body['cardDetails'] ?? $body['card_details'] ?? null) : null,
-            'sync' => $syncOnly,
+            'card_details'    => $status === 201 ? ($body['cardDetails'] ?? $body['card_details'] ?? null) : null,
+            'sync'            => $syncOnly,
         ];
     }
 

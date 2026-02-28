@@ -50,6 +50,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/order', [OrderController::class, 'store']);
         Route::get('/order', [OrderController::class, 'show']);
         Route::get('/order/{order}', [OrderController::class, 'showById']);
+        Route::get('/order/{order}/cards', [OrderController::class, 'fetchCards']);
         Route::post('/order/item', [OrderController::class, 'setItem']);
         Route::put('/order/item', [OrderController::class, 'updateItem']);
         Route::delete('/order/item', [OrderController::class, 'clearItem']);

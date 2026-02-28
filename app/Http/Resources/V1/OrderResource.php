@@ -12,13 +12,35 @@ class OrderResource extends JsonResource
     {
         $item = $this->resource->relationLoaded('items') ? $this->resource->items->first() : null;
 
-        $cardDetails = null;
+        // ── Decrypt stored card data ───────────────────────────────────────
+        $storedCards  = null;   // the `cards` array (backward-compat)
+        $cardProducts = null;   // Woohoo `products` map (keyed by SKU)
+        $cardCurrency = null;   // Woohoo currency object
+        $deliveryMode = null;   // Woohoo deliveryMode
+        $cardDelivery = null;   // Woohoo delivery summary
+        $totalCards   = null;   // total_cards
+
         if ($this->card_details_encrypted) {
             try {
-                $cardDetails = Crypt::decryptString($this->card_details_encrypted);
-                $cardDetails = json_decode($cardDetails, true);
+                $raw     = Crypt::decryptString($this->card_details_encrypted);
+                $decoded = json_decode($raw, true);
+
+                if (is_array($decoded)) {
+                    if (isset($decoded['cards'])) {
+                        // ── New format: full Activated Cards API response ──────
+                        $storedCards  = $decoded['cards']    ?? null;
+                        $cardProducts = $decoded['products'] ?? null;
+                        $cardCurrency = $decoded['currency'] ?? null;
+                        $deliveryMode = $decoded['deliveryMode'] ?? null;
+                        $cardDelivery = $decoded['delivery']  ?? null;
+                        $totalCards   = $decoded['total_cards'] ?? null;
+                    } else {
+                        // ── Legacy format: plain array of card objects ─────────
+                        $storedCards = $decoded;
+                    }
+                }
             } catch (\Throwable) {
-                $cardDetails = null;
+                // Decryption failure — leave everything null
             }
         }
 
@@ -27,12 +49,22 @@ class OrderResource extends JsonResource
             'order_token'     => $this->order_token,
             'status'          => $this->status,
             'total_amount'    => $this->total_amount,
+            'points_used'     => $this->points_used,
+            'points_earned'   => $this->points_earned,
             'currency_code'   => $this->currency_code,
             'item'            => $item ? new OrderItemResource($item) : null,
             'woohoo_refno'    => $this->woohoo_refno,
             'woohoo_order_id' => $this->woohoo_order_id,
             'delivery_status' => $this->delivery_status,
-            'card_details'    => $cardDetails,
+
+            // Card data — card_details is the cards array for backward compat
+            'card_details'    => $storedCards,
+            'card_products'   => $cardProducts,
+            'card_currency'   => $cardCurrency,
+            'delivery_mode'   => $deliveryMode,
+            'card_delivery'   => $cardDelivery,
+            'total_cards'     => $totalCards,
+
             'created_at'      => $this->created_at?->toIso8601String(),
         ];
     }
