@@ -46,7 +46,7 @@ export default function LoginPage() {
             <p className="text-2xl font-extrabold text-white mb-1">
               Pay<span className="text-primary-400">Flex</span>
             </p>
-            <p className="text-sm text-slate-400">Sign in to your account</p>
+            <p className="text-sm text-white/80">Sign in to your account</p>
           </div>
 
           {error && (
@@ -117,7 +117,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-6">
+          <p className="text-center text-sm text-white/75 mt-6">
             Don&apos;t have an account?{' '}
             <Link to="/register" className="text-primary-400 font-semibold hover:text-primary-300">
               Create one free
@@ -127,7 +127,7 @@ export default function LoginPage() {
 
         {/* Back home */}
         <p className="text-center mt-5">
-          <Link to="/" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+          <Link to="/" className="text-xs text-white/60 hover:text-white/85 transition-colors">
             ← Back to PayFlex
           </Link>
         </p>

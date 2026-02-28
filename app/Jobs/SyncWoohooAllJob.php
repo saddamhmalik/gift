@@ -15,13 +15,13 @@ class SyncWoohooAllJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 1;
-
     public int $timeout = 60;
 
     public function __construct(
         public bool $clearToken = false,
         public bool $skipDetails = false
     ) {
+        $this->onConnection('redis');
         $this->onQueue('woohoo-categories');
     }
 
@@ -34,9 +34,12 @@ class SyncWoohooAllJob implements ShouldQueue
         $chain = [
             new SyncWoohooCategoriesJob(false),
             new SyncWoohooProductsJob(false),
-            ...$this->skipDetails ? [] : [new SyncWoohooProductDetailsJob(false)],
+            ...($this->skipDetails ? [] : [new SyncWoohooProductDetailsJob(false)]),
         ];
 
-        Bus::connection('redis')->chain($chain)->dispatch();
+        Bus::chain($chain)
+            ->onConnection('redis')
+            ->onQueue('woohoo-categories')
+            ->dispatch();
     }
 }
