@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\V1\UserResource;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Mail\VerifyEmailOtpMail;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class ProfileController extends Controller
 {
@@ -76,7 +77,7 @@ class ProfileController extends Controller
 
     /**
      * POST /api/v1/profile/email
-     * Request an email address change — sends verification link to the new email.
+     * Request an email address change — sends 6-digit OTP to the new email.
      */
     public function requestEmailChange(Request $request): JsonResponse
     {
@@ -84,46 +85,94 @@ class ProfileController extends Controller
             'email' => 'required|email|unique:users,email,' . $request->user()->id,
         ]);
 
-        $user  = $request->user();
-        $token = Str::random(64);
+        $user = $request->user();
+        $otp  = (string) random_int(100000, 999999);
 
         $user->update([
             'pending_email'          => $request->email,
-            'email_change_token'     => hash('sha256', $token),
-            'email_change_expires_at'=> now()->addHours(24),
+            'email_change_token'     => $otp,
+            'email_change_expires_at'=> now()->addMinutes(10),
         ]);
 
-        // Send verification email
-        $verifyUrl = config('app.frontend_url', 'http://localhost:3001')
-            . '/profile/verify-email?token=' . $token
-            . '&email=' . urlencode($request->email);
-
-        Mail::raw(
-            "Hello {$user->first_name},\n\nPlease verify your new email address by clicking the link below:\n\n{$verifyUrl}\n\nThis link expires in 24 hours.\n\nIf you did not request this change, please ignore this email.",
-            function ($m) use ($request, $user) {
-                $m->to($request->email)
-                  ->subject('Verify your new email address — ' . config('app.name'));
-            }
-        );
+        Mail::to($request->email)->send(new VerifyEmailOtpMail(
+            $request->email,
+            $user->first_name ?? $user->name,
+            $otp,
+            true,
+            10
+        ));
 
         return $this->success(
-            ['message' => 'Verification email sent to ' . $request->email],
-            'Verification email sent.'
+            ['message' => 'Verification code sent to ' . $request->email],
+            'Verification code sent.'
         );
     }
 
     /**
-     * POST /api/v1/profile/email/verify
-     * Confirm the email change using the token.
+     * POST /api/v1/auth/verify-email (public)
+     * Verify email using the 6-digit OTP. No auth required — finds user by pending_email or email.
+     */
+    public function verifyEmailWithOtp(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'otp'   => ['required', 'string', 'regex:/^\d{6}$/'],
+        ]);
+
+        $email = strtolower(trim($request->email));
+        $otp   = (string) preg_replace('/\D/', '', $request->otp);
+
+        $user = User::whereRaw('LOWER(TRIM(pending_email)) = ?', [$email])->first();
+        if (! $user) {
+            $user = User::whereRaw('LOWER(TRIM(email)) = ?', [$email])->first();
+        }
+
+        if (! $user) {
+            return $this->error('No pending verification found for this email. Request a new code from your profile.', 422);
+        }
+
+        if (! $user->email_change_token || ! $user->email_change_expires_at) {
+            return $this->error('No pending verification or the code has expired. Request a new code from your profile.', 422);
+        }
+
+        if ($user->email_change_expires_at->isPast()) {
+            $user->update([
+                'pending_email' => null,
+                'email_change_token' => null,
+                'email_change_expires_at' => null,
+            ]);
+            return $this->error('This verification code has expired. Please request a new one from your profile.', 422);
+        }
+
+        $storedOtp = (string) $user->email_change_token;
+        if ($storedOtp !== $otp) {
+            return $this->error('Invalid verification code. Please check and try again.', 422);
+        }
+
+        $user->update([
+            'email' => $user->pending_email,
+            'email_verified_at' => now(),
+            'pending_email' => null,
+            'email_change_token' => null,
+            'email_change_expires_at' => null,
+        ]);
+
+        return $this->success(new UserResource($user->fresh()), 'Email verified successfully.');
+    }
+
+    /**
+     * POST /api/v1/profile/email/verify (authenticated)
+     * Confirm the email change using the OTP.
      */
     public function verifyEmailChange(Request $request): JsonResponse
     {
         $request->validate([
-            'token' => 'required|string|size:64',
             'email' => 'required|email',
+            'otp'   => ['required', 'string', 'regex:/^\d{6}$/'],
         ]);
 
         $user = $request->user();
+        $otp  = (string) preg_replace('/\D/', '', $request->otp);
 
         if (
             ! $user->pending_email ||
@@ -131,15 +180,17 @@ class ProfileController extends Controller
             ! $user->email_change_expires_at ||
             $user->email_change_expires_at->isPast()
         ) {
-            return $this->error('No pending email change or the link has expired.', 422);
+            return $this->error('No pending verification or the code has expired. Request a new code.', 422);
         }
 
-        if (! hash_equals($user->email_change_token, hash('sha256', $request->token))) {
-            return $this->error('Invalid verification token.', 422);
+        $storedOtp = (string) $user->email_change_token;
+        if ($storedOtp !== $otp) {
+            return $this->error('Invalid verification code.', 422);
         }
 
-        if ($user->pending_email !== $request->email) {
-            return $this->error('Email mismatch. Please use the latest verification link.', 422);
+        $emailMatch = strtolower(trim($user->pending_email)) === strtolower(trim($request->email));
+        if (! $emailMatch) {
+            return $this->error('Email mismatch. Use the code sent to your pending email.', 422);
         }
 
         $user->update([
@@ -241,7 +292,7 @@ class ProfileController extends Controller
 
     /**
      * POST /api/v1/profile/email/resend
-     * Resend the email verification for the current (unverified) email.
+     * Resend the email verification OTP for the current (unverified) email.
      */
     public function resendEmailVerification(Request $request): JsonResponse
     {
@@ -251,22 +302,21 @@ class ProfileController extends Controller
             return $this->error('Your email is already verified.', 422);
         }
 
-        $token = Str::random(64);
+        $otp = (string) random_int(100000, 999999);
         $user->update([
-            'email_change_token'     => hash('sha256', $token),
-            'email_change_expires_at'=> now()->addHours(24),
+            'email_change_token'     => $otp,
+            'email_change_expires_at'=> now()->addMinutes(10),
             'pending_email'          => $user->email,
         ]);
 
-        $verifyUrl = config('app.frontend_url', 'http://localhost:3001')
-            . '/profile/verify-email?token=' . $token
-            . '&email=' . urlencode($user->email);
+        Mail::to($user->email)->send(new VerifyEmailOtpMail(
+            $user->email,
+            $user->first_name ?? $user->name,
+            $otp,
+            false,
+            10
+        ));
 
-        Mail::raw(
-            "Hello {$user->first_name},\n\nPlease verify your email address:\n\n{$verifyUrl}\n\nThis link expires in 24 hours.",
-            fn ($m) => $m->to($user->email)->subject('Verify your email — ' . config('app.name'))
-        );
-
-        return $this->success(['message' => 'Verification email resent.'], 'Verification email sent.');
+        return $this->success(['message' => 'Verification code sent. Check your inbox.'], 'Verification code sent.');
     }
 }

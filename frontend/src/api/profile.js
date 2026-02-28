@@ -11,8 +11,11 @@ export const uploadAvatar = (file) => {
 export const removeAvatar = () => api.delete('/profile/avatar').then((r) => r.data)
 export const requestEmailChange = (email) =>
   api.post('/profile/email', { email }).then((r) => r.data)
-export const verifyEmailChange = (token, email) =>
-  api.post('/profile/email/verify', { token, email }).then((r) => r.data)
+export const verifyEmailChange = (email, otp) =>
+  api.post('/profile/email/verify', { email, otp }).then((r) => r.data)
+/** Public verify by OTP (no auth). */
+export const verifyEmailWithOtp = (email, otp) =>
+  api.post('/auth/verify-email', { email, otp }).then((r) => r.data)
 export const resendEmailVerification = () => api.post('/profile/email/resend').then((r) => r.data)
 export const requestPhoneChange = (phone) =>
   api.post('/profile/phone', { phone }).then((r) => r.data)

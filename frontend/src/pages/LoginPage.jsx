@@ -57,7 +57,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              <label className="block text-sm font-medium text-white mb-1.5">
                 Email address
               </label>
               <input
@@ -66,13 +66,13 @@ export default function LoginPage() {
                 value={form.email}
                 onChange={set('email')}
                 placeholder="you@example.com"
-                className="w-full bg-white/8 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                className="w-full bg-slate-800/90 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all [&:-webkit-autofill]:!bg-slate-800 [&:-webkit-autofill]:!text-white"
               />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-slate-300">Password</label>
+                <label className="block text-sm font-medium text-white">Password</label>
                 <Link
                   to="/forgot-password"
                   className="text-xs text-primary-400 hover:text-primary-300"
@@ -87,7 +87,7 @@ export default function LoginPage() {
                   value={form.password}
                   onChange={set('password')}
                   placeholder="••••••••"
-                  className="w-full bg-white/8 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                  className="w-full bg-slate-800/90 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-400 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all [&:-webkit-autofill]:!bg-slate-800 [&:-webkit-autofill]:!text-white"
                 />
                 <button
                   type="button"

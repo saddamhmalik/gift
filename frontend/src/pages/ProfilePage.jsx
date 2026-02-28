@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   User,
   Mail,
@@ -85,7 +85,6 @@ function VerifiedBadge({ verified, label }) {
 export default function ProfilePage() {
   const { user, refreshUser, logout } = useAuth()
   const navigate = useNavigate()
-  const [params] = useSearchParams()
   const fileRef = useRef(null)
 
   // ── Name ──
@@ -101,6 +100,8 @@ export default function ProfilePage() {
 
   // ── Email ──
   const [newEmail, setNewEmail] = useState('')
+  const [emailOtp, setEmailOtp] = useState('')
+  const [emailVerifyTarget, setEmailVerifyTarget] = useState(null) // email we sent OTP to
   const [emailMsg, setEmailMsg] = useState(null)
   const [emailLoading, setEmailLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
@@ -119,25 +120,6 @@ export default function ProfilePage() {
   const [pwShow, setPwShow] = useState(false)
   const [pwMsg, setPwMsg] = useState(null)
   const [pwLoading, setPwLoading] = useState(false)
-
-  // Handle email verify link landing (/profile?verify=token&email=...)
-  useEffect(() => {
-    const token = params.get('token')
-    const email = params.get('email')
-    if (token && email && user) {
-      verifyEmailChange(token, email)
-        .then((res) => {
-          refreshUser()
-          setEmailMsg({ type: 'success', text: res.message ?? 'Email verified successfully!' })
-        })
-        .catch((err) =>
-          setEmailMsg({
-            type: 'error',
-            text: err.response?.data?.message ?? 'Verification failed.',
-          })
-        )
-    }
-  }, []) // eslint-disable-line
 
   if (!user) {
     return (
@@ -208,9 +190,11 @@ export default function ProfilePage() {
     try {
       await requestEmailChange(newEmail)
       setEmailSent(true)
+      setEmailVerifyTarget(newEmail)
+      setEmailOtp('')
       setEmailMsg({
         type: 'success',
-        text: `Verification link sent to ${newEmail}. Check your inbox.`,
+        text: `Verification code sent to ${newEmail}. Enter it below.`,
       })
     } catch (e) {
       setEmailMsg({
@@ -227,9 +211,33 @@ export default function ProfilePage() {
     setEmailMsg(null)
     try {
       await resendEmailVerification()
-      setEmailMsg({ type: 'success', text: 'Verification email resent. Check your inbox.' })
+      setEmailVerifyTarget(user.email)
+      setEmailOtp('')
+      setEmailMsg({ type: 'success', text: 'Verification code sent. Enter it below.' })
     } catch (e) {
       setEmailMsg({ type: 'error', text: e.response?.data?.message ?? 'Failed to resend.' })
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
+  const handleVerifyEmail = async () => {
+    if (!emailVerifyTarget || emailOtp.length !== 6) return
+    setEmailLoading(true)
+    setEmailMsg(null)
+    try {
+      // Use authenticated endpoint when logged in (profile) so we verify the current user
+      await verifyEmailChange(emailVerifyTarget, emailOtp)
+      await refreshUser()
+      setEmailVerifyTarget(null)
+      setEmailOtp('')
+      setEmailSent(false)
+      setNewEmail('')
+      setEmailMsg({ type: 'success', text: 'Email verified successfully!' })
+    } catch (e) {
+      const d = e.response?.data
+      const msg = d?.message ?? (d?.errors?.otp?.[0] || d?.errors?.email?.[0]) ?? 'Invalid or expired code.'
+      setEmailMsg({ type: 'error', text: msg })
     } finally {
       setEmailLoading(false)
     }
@@ -432,9 +440,45 @@ export default function ProfilePage() {
                 disabled={emailLoading}
                 className="font-semibold underline hover:no-underline ml-1"
               >
-                {emailLoading ? 'Sending…' : 'Resend verification email'}
+                {emailLoading ? 'Sending…' : 'Send verification code'}
               </button>
             </Alert>
+          )}
+
+          {emailVerifyTarget && (
+            <div className="rounded-xl border border-primary-200 bg-primary-50/50 p-4 space-y-2">
+              <p className="text-xs font-semibold text-gray-600">
+                Enter the 6-digit code sent to <span className="text-gray-900">{emailVerifyTarget}</span>
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={emailOtp}
+                  onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="123456"
+                  className="flex-1 border-2 border-gray-200 focus:border-primary-400 rounded-xl px-3 py-2.5 text-sm outline-none transition-all font-mono tracking-[0.2em] text-center max-w-[8rem]"
+                />
+                <button
+                  onClick={handleVerifyEmail}
+                  disabled={emailLoading || emailOtp.length !== 6}
+                  className="btn-primary !py-2 !px-4 !rounded-xl disabled:opacity-50 shrink-0"
+                >
+                  {emailLoading ? <Loader2 size={14} className="animate-spin" /> : 'Verify'}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmailVerifyTarget(null)
+                  setEmailOtp('')
+                }}
+                className="text-xs text-gray-500 hover:text-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
           )}
 
           <div className="pt-2 border-t border-gray-200/80">
@@ -453,19 +497,21 @@ export default function ProfilePage() {
                   disabled={emailLoading || !newEmail.trim()}
                   className="btn-primary !py-2 !px-4 !rounded-xl disabled:opacity-50 shrink-0"
                 >
-                  {emailLoading ? <Loader2 size={14} className="animate-spin" /> : 'Send Link'}
+                  {emailLoading ? <Loader2 size={14} className="animate-spin" /> : 'Send code'}
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm text-gray-500 flex-1 min-w-0">
-                  Verification link sent to{' '}
-                  <span className="font-semibold text-gray-800">{newEmail}</span>
+                  Verification code sent to{' '}
+                  <span className="font-semibold text-gray-800">{newEmail}</span>. Enter it above.
                 </p>
                 <button
                   onClick={() => {
                     setEmailSent(false)
                     setNewEmail('')
+                    setEmailVerifyTarget(null)
+                    setEmailOtp('')
                   }}
                   className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1 shrink-0"
                 >

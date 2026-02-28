@@ -25,6 +25,7 @@ import TagsPage from './pages/TagsPage'
 import TagPage from './pages/TagPage'
 import CardBalancePage from './pages/CardBalancePage'
 import ProfilePage from './pages/ProfilePage'
+import { Navigate } from 'react-router-dom'
 import NotFoundPage from './pages/NotFoundPage'
 
 const queryClient = new QueryClient({
@@ -235,15 +236,8 @@ export default function App() {
                   </Layout>
                 }
               />
-              {/* Email change verification landing */}
-              <Route
-                path="/profile/verify-email"
-                element={
-                  <Layout>
-                    <ProfilePage />
-                  </Layout>
-                }
-              />
+              {/* Email verification is OTP-based; old link redirects to profile */}
+              <Route path="/profile/verify-email" element={<Navigate to="/profile" replace />} />
 
               {/* Catch-all */}
               <Route

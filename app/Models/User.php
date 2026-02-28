@@ -35,6 +35,7 @@ class User extends Authenticatable
         'email_change_token',
         'email_change_expires_at',
         'pending_phone',
+        'email_verified_at'
     ];
 
     /**

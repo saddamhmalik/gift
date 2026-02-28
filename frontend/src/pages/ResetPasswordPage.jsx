@@ -105,7 +105,7 @@ export default function ResetPasswordPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                <label className="block text-sm font-medium text-white mb-1.5">
                   New password
                 </label>
                 <div className="relative">
@@ -116,7 +116,7 @@ export default function ResetPasswordPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 8 characters"
-                    className="w-full bg-white/8 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                    className="w-full bg-slate-800/90 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-400 rounded-xl px-4 py-2.5 pr-11 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all [&:-webkit-autofill]:!bg-slate-800 [&:-webkit-autofill]:!text-white"
                   />
                   <button
                     type="button"
@@ -128,7 +128,7 @@ export default function ResetPasswordPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                <label className="block text-sm font-medium text-white mb-1.5">
                   Confirm password
                 </label>
                 <input
@@ -138,7 +138,7 @@ export default function ResetPasswordPage() {
                   value={passwordConfirmation}
                   onChange={(e) => setPasswordConfirmation(e.target.value)}
                   placeholder="Same as above"
-                  className="w-full bg-white/8 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                  className="w-full bg-slate-800/90 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all [&:-webkit-autofill]:!bg-slate-800 [&:-webkit-autofill]:!text-white"
                 />
               </div>
               <button

@@ -45,6 +45,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/google', [AuthController::class, 'google']);
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
         Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+        Route::post('/verify-email', [ProfileController::class, 'verifyEmailWithOtp']);
     });
 
     // Protected: Orders & payment (logged-in user only)

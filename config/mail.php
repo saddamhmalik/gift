@@ -14,6 +14,7 @@ return [
     |
     */
 
+    // Use "log" in local if no SMTP server (Mailpit/MailHog) is running to avoid connection refused
     'default' => env('MAIL_MAILER', 'log'),
 
     /*

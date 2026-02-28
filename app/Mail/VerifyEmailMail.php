@@ -9,28 +9,33 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class PasswordResetMail extends Mailable implements ShouldQueue
+class VerifyEmailMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
     public function __construct(
         public string $email,
-        public string $resetUrl,
-        public int $expireMinutes = 60
+        public string $firstName,
+        public string $verifyUrl,
+        public bool $isNewEmail = false
     ) {}
 
     public function envelope(): Envelope
     {
+        $subject = $this->isNewEmail
+            ? 'Verify your new email address — ' . config('app.name')
+            : 'Verify your email — ' . config('app.name');
+
         return new Envelope(
-            subject: 'Reset your password — ' . config('app.name'),
-            replyTo: [config('mail.from.address')],
+            subject: $subject,
+            to: [$this->email],
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'emails.password-reset',
+            view: 'emails.verify-email',
         );
     }
 }
