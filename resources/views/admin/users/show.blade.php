@@ -256,26 +256,40 @@
                                     {{-- Gift Card Details --}}
                                     @if($order->card_details_encrypted)
                                         @php
+                                            $cards = [];
                                             try {
                                                 $cardJson = \Illuminate\Support\Facades\Crypt::decryptString($order->card_details_encrypted);
-                                                $cards = json_decode($cardJson, true) ?? [];
-                                            } catch (\Throwable $e) {
+                                                $decoded  = json_decode($cardJson, true) ?? [];
+                                                // New format: full Activated Cards API response {cards: [...], ...}
+                                                // Legacy format: plain array of card objects [{cardNumber:..}, ...]
+                                                $cards = isset($decoded['cards']) ? ($decoded['cards'] ?? []) : $decoded;
+                                                // Only keep actual card objects (arrays), skip scalar values
+                                                $cards = array_filter($cards, fn($c) => is_array($c));
+                                            } catch (\Throwable) {
                                                 $cards = [];
                                             }
+                                            // Fields to display (in order); skip noisy/complex nested fields
+                                            $cardDisplayKeys = ['cardNumber','cardPin','activationCode','barcode','activationUrl','amount','validity','sequenceNumber','productName','sku'];
                                         @endphp
                                         @if(count($cards))
                                             <p class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-zinc-400">Gift Card Details</p>
                                             <div class="space-y-2">
-                                                @foreach($cards as $card)
-                                                    <div class="flex flex-wrap gap-4 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm">
-                                                        @foreach($card as $key => $value)
-                                                            @if($value)
-                                                                <div>
-                                                                    <span class="text-zinc-400 capitalize">{{ str_replace('_', ' ', $key) }}:</span>
-                                                                    <span class="font-mono font-semibold text-zinc-800 ml-1">{{ $value }}</span>
-                                                                </div>
-                                                            @endif
-                                                        @endforeach
+                                                @foreach(array_values($cards) as $ci => $card)
+                                                    <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm">
+                                                        @if(count($cards) > 1)
+                                                            <p class="text-xs font-semibold text-emerald-700 mb-2">Card {{ $ci + 1 }}</p>
+                                                        @endif
+                                                        <div class="flex flex-wrap gap-x-6 gap-y-2">
+                                                            @foreach($cardDisplayKeys as $key)
+                                                                @php $val = $card[$key] ?? null; @endphp
+                                                                @if($val && is_scalar($val))
+                                                                    <div>
+                                                                        <span class="text-zinc-400 capitalize text-xs">{{ str_replace(['card','Card'], '', ucwords(str_replace('_', ' ', $key))) }}:</span>
+                                                                        <span class="font-mono font-semibold text-zinc-800 ml-1 text-xs">{{ $val }}</span>
+                                                                    </div>
+                                                                @endif
+                                                            @endforeach
+                                                        </div>
                                                     </div>
                                                 @endforeach
                                             </div>

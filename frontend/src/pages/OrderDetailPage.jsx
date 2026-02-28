@@ -388,8 +388,10 @@ export default function OrderDetailPage() {
           )}
         </div>
 
-        {/* Delivery channel summary (from Activated Cards API) */}
-        {(liveDelivery ?? order.card_delivery) && <DeliveryBadge delivery={liveDelivery ?? order.card_delivery} />}
+        {/* Delivery channel summary — only meaningful when Woohoo sends via email/SMS */}
+        {deliveryMode && deliveryMode !== 'API' && (liveDelivery ?? order.card_delivery) && (
+          <DeliveryBadge delivery={liveDelivery ?? order.card_delivery} />
+        )}
 
         {order.status === 'pending' && (
           <div className="flex items-center gap-2 mt-3">
