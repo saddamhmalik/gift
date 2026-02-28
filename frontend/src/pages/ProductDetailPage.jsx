@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ShoppingCart, ChevronRight, Shield, Zap, RefreshCw, Info, Loader2, AlertCircle } from 'lucide-react'
+import { ShoppingCart, ChevronRight, Shield, Zap, RefreshCw, Info, Loader2, AlertCircle, Star, Gift } from 'lucide-react'
 import { getProduct } from '../api/products'
+import { getLoyaltyBalance } from '../api/loyalty'
 import { useAuth } from '../contexts/AuthContext'
 import { useOrder } from '../contexts/OrderContext'
 import { initiatePayment, redirectToPayU } from '../api/payment'
@@ -42,6 +43,19 @@ function TncAccordion({ html }) {
   )
 }
 
+/* ─── Loyalty Points Banner ─────────────────────────────────────────────────── */
+function LoyaltyEarnBadge({ points }) {
+  if (!points || points <= 0) return null
+  return (
+    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+      <Star size={14} className="text-amber-500" fill="currentColor" />
+      <span className="text-xs font-semibold text-amber-700">
+        Earn <span className="font-extrabold">{points.toFixed(0)} PayFlex Points</span> (worth ₹{points.toFixed(0)}) on this purchase
+      </span>
+    </div>
+  )
+}
+
 /* ─── Main component ────────────────────────────────────────────────────────── */
 export default function ProductDetailPage() {
   const { slug } = useParams()
@@ -50,10 +64,11 @@ export default function ProductDetailPage() {
   const navigate = useNavigate()
 
   const [selectedDenom, setSelectedDenom] = useState(null)
-  const [qty, setQty]           = useState(1)
-  const [customPrice, setCustomPrice] = useState('')
-  const [buyError, setBuyError] = useState('')
-  const [paying, setPaying]     = useState(false)
+  const [qty, setQty]                     = useState(1)
+  const [customPrice, setCustomPrice]     = useState('')
+  const [usePoints, setUsePoints]         = useState(false)
+  const [buyError, setBuyError]           = useState('')
+  const [paying, setPaying]               = useState(false)
 
   const { data, isLoading, isError } = useQuery({
     queryKey:  ['product', slug],
@@ -61,7 +76,17 @@ export default function ProductDetailPage() {
     staleTime: 1000 * 60 * 5,
   })
 
-  const product = data?.data
+  const { data: loyaltyData } = useQuery({
+    queryKey:  ['loyalty', 'balance'],
+    queryFn:   () => getLoyaltyBalance(),
+    enabled:   !!user,
+    staleTime: 1000 * 60,
+  })
+
+  const product      = data?.data
+  const loyaltyInfo  = loyaltyData?.data
+  const pointBalance = loyaltyInfo?.balance ?? 0
+  const defaultRate  = loyaltyInfo?.default_rate ?? 0.01
 
   if (isLoading) return (
     <div className="min-h-[60vh] flex items-center justify-center">
@@ -78,25 +103,23 @@ export default function ProductDetailPage() {
     </div>
   )
 
-  // price_type is now returned directly on the product object
-  const priceType = product.price_type ?? 'RANGE'
-  // denominations is a flat array of strings/numbers e.g. ["100", "500", "1000"]
-  const denoms    = Array.isArray(product.denominations) ? product.denominations : []
-  const minPrice  = parseFloat(product.min_price) || 0
-  const maxPrice  = parseFloat(product.max_price) || 0
-
-  // Show denomination buttons when:
-  //   • SLAB type (must pick from list)
-  //   • RANGE with specific denominations (Woohoo only accepts listed values)
-  // Show free-text amount input only when RANGE and no denominations stored
-  const hasDenoms    = denoms.length > 0
-  const isFreeRange  = priceType === 'RANGE' && !hasDenoms
+  const priceType   = product.price_type ?? 'RANGE'
+  const denoms      = Array.isArray(product.denominations) ? product.denominations : []
+  const minPrice    = parseFloat(product.min_price) || 0
+  const maxPrice    = parseFloat(product.max_price) || 0
+  const hasDenoms   = denoms.length > 0
+  const isFreeRange = priceType === 'RANGE' && !hasDenoms
 
   const effectivePrice = hasDenoms
     ? (selectedDenom != null ? parseFloat(selectedDenom) : parseFloat(denoms[0]) || minPrice)
     : (parseFloat(customPrice) || minPrice)
 
-  const total = (effectivePrice || 0) * qty
+  const orderTotal    = (effectivePrice || 0) * qty
+  // Loyalty
+  const earnRate      = product.loyalty_rate ?? defaultRate
+  const pointsToEarn  = Math.round(orderTotal * earnRate * (usePoints ? Math.max(0, 1 - Math.min(pointBalance, orderTotal) / orderTotal) : 1))
+  const pointsApplied = usePoints ? Math.min(pointBalance, orderTotal) : 0
+  const amountToPay   = Math.max(1, orderTotal - pointsApplied)
 
   const handleBuyNow = async () => {
     if (!user) { navigate('/login', { state: { from: { pathname: `/products/${slug}` } } }); return }
@@ -123,7 +146,10 @@ export default function ProductDetailPage() {
         selectedDenomination: String(effectivePrice),
       })
 
-      const res = await initiatePayment({ order_token: orderData.order_token })
+      const res = await initiatePayment({
+        order_token:   orderData.order_token,
+        points_to_use: pointsApplied,
+      })
       const { payu_params } = res.data
 
       redirectToPayU(payu_params)
@@ -173,6 +199,13 @@ export default function ProductDetailPage() {
               </div>
             ))}
           </div>
+
+          {/* Points earn preview */}
+          {orderTotal > 0 && (
+            <div className="mt-4">
+              <LoyaltyEarnBadge points={Math.round(orderTotal * earnRate)} />
+            </div>
+          )}
         </div>
 
         {/* ── Right: Info + actions ── */}
@@ -207,7 +240,7 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* Denomination buttons — shown for SLAB and for RANGE-with-specific-denominations */}
+          {/* Denomination buttons */}
           {hasDenoms && (
             <div>
               <p className="text-sm font-semibold text-gray-700 mb-2.5">Select Amount</p>
@@ -235,7 +268,7 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          {/* Free-form amount — only for RANGE products with no specific denominations */}
+          {/* Free-form amount */}
           {isFreeRange && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -267,23 +300,82 @@ export default function ProductDetailPage() {
             <span className="text-xs text-gray-400">(max 4 per order)</span>
           </div>
 
+          {/* ── Loyalty Points Toggle (logged in users only) ── */}
+          {user && pointBalance > 0 && orderTotal > 0 && (
+            <div className={`rounded-2xl border-2 p-4 transition-all ${usePoints ? 'border-amber-400 bg-amber-50' : 'border-gray-200 bg-gray-50'}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <Star size={16} className="text-amber-500" fill="currentColor" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Use PayFlex Points</p>
+                    <p className="text-xs text-gray-500">
+                      You have <span className="font-bold text-amber-600">{pointBalance.toFixed(0)} pts</span> (worth ₹{pointBalance.toFixed(0)})
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setUsePoints(v => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${usePoints ? 'bg-amber-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${usePoints ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+              {usePoints && (
+                <div className="mt-3 pt-3 border-t border-amber-200">
+                  <div className="flex justify-between text-xs text-gray-600">
+                    <span>Points applied:</span>
+                    <span className="font-semibold text-amber-700">−₹{pointsApplied.toFixed(0)} ({pointsApplied.toFixed(0)} pts)</span>
+                  </div>
+                  {pointsToEarn > 0 && (
+                    <p className="text-xs text-gray-400 mt-1">You'll still earn {pointsToEarn} pts on the paid portion.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Order total */}
           <div className="bg-gradient-to-r from-primary-50 to-amber-50 rounded-2xl p-4 border border-primary-100">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500 mb-0.5">Order Total</p>
-                <p className="text-2xl font-extrabold text-primary-600">
-                  {product.currency_code} {total.toLocaleString()}
+                <p className="text-xs text-gray-500 mb-0.5">
+                  {usePoints && pointsApplied > 0 ? 'Amount to Pay' : 'Order Total'}
                 </p>
+                <p className="text-2xl font-extrabold text-primary-600">
+                  {product.currency_code} {amountToPay.toLocaleString()}
+                </p>
+                {usePoints && pointsApplied > 0 && (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    <span className="line-through">₹{orderTotal.toLocaleString()}</span>
+                    <span className="text-amber-600 ml-1 font-medium">− {pointsApplied.toFixed(0)} pts</span>
+                  </p>
+                )}
               </div>
               <div className="text-right text-xs text-gray-500">
                 <p>{qty} × {product.currency_code} {Number(effectivePrice)?.toLocaleString()}</p>
+                {pointsToEarn > 0 && (
+                  <p className="text-amber-600 font-medium mt-1 flex items-center gap-1 justify-end">
+                    <Star size={10} fill="currentColor" /> +{pointsToEarn} pts earned
+                  </p>
+                )}
                 <p className="text-green-600 font-medium mt-1 flex items-center gap-1 justify-end">
                   <Shield size={11} /> Secure Checkout
                 </p>
               </div>
             </div>
           </div>
+
+          {/* Points promo (not logged in) */}
+          {!user && orderTotal > 0 && (
+            <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+              <Gift size={14} className="text-amber-500" />
+              <span className="text-xs text-amber-700">
+                <Link to="/login" className="font-bold underline">Login</Link> to earn <span className="font-bold">{Math.round(orderTotal * earnRate)} PayFlex Points</span> on this purchase!
+              </span>
+            </div>
+          )}
 
           {/* Error */}
           {buyError && (
@@ -303,7 +395,7 @@ export default function ProductDetailPage() {
               {busy ? (
                 <><Loader2 size={18} className="animate-spin" /> {paying ? 'Redirecting to PayU…' : 'Preparing order…'}</>
               ) : (
-                <><ShoppingCart size={18} /> Pay with PayU</>
+                <><ShoppingCart size={18} /> {usePoints && pointsApplied > 0 ? `Pay ₹${amountToPay.toLocaleString()} via PayU` : 'Pay with PayU'}</>
               )}
             </button>
           ) : (

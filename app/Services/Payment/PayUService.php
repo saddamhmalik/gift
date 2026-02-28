@@ -33,7 +33,9 @@ class PayUService
     {
         $item        = $order->items->first();
         $productInfo = $item?->product?->name ?? 'Gift Card';
-        $amount      = number_format((float) $order->total_amount, 2, '.', '');
+        // Amount charged via PayU = total minus any loyalty points applied
+        $chargeAmount = max(1, (float) $order->total_amount - (float) $order->points_used);
+        $amount       = number_format($chargeAmount, 2, '.', '');
         $firstName   = $user->first_name ?? explode(' ', $user->name ?? 'Customer')[0];
         $email       = $user->email;
         // PayU requires a phone for the form; ensure it's stored without + for the field

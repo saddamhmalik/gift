@@ -34,6 +34,7 @@ class Product extends Model
         'woohoo_attributes',
         'is_active',
         'is_featured',
+        'loyalty_rate',
         'is_trending',
         'total_sales',
         'popularity_score',

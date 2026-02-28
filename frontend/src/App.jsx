@@ -17,6 +17,7 @@ import AboutPage          from './pages/AboutPage'
 import PrivacyPolicyPage  from './pages/PrivacyPolicyPage'
 import TermsPage          from './pages/TermsPage'
 import LoyaltyPage        from './pages/LoyaltyPage'
+import MyPointsPage       from './pages/MyPointsPage'
 import TagsPage           from './pages/TagsPage'
 import TagPage            from './pages/TagPage'
 import NotFoundPage       from './pages/NotFoundPage'
@@ -67,6 +68,7 @@ export default function App() {
               <Route path="/privacy-policy"       element={<Layout><PrivacyPolicyPage /></Layout>} />
               <Route path="/terms"                element={<Layout><TermsPage /></Layout>} />
               <Route path="/loyalty"              element={<Layout><LoyaltyPage /></Layout>} />
+              <Route path="/my-points"            element={<Layout><MyPointsPage /></Layout>} />
 
               {/* Catch-all */}
               <Route path="*"                     element={<Layout><NotFoundPage /></Layout>} />

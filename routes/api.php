@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\LoyaltyController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PayUController;
 use App\Http\Controllers\Api\V1\ProductController;
@@ -54,6 +55,13 @@ Route::prefix('v1')->group(function () {
 
         // PayU payment initiation (authenticated)
         Route::post('/payment/initiate', [PayUController::class, 'initiate']);
+
+        // Loyalty program (authenticated)
+        Route::prefix('loyalty')->group(function () {
+            Route::get('/balance',  [LoyaltyController::class, 'balance']);
+            Route::get('/history',  [LoyaltyController::class, 'history']);
+            Route::get('/estimate', [LoyaltyController::class, 'estimate']);
+        });
     });
 
     // PayU callbacks — server-to-server POSTs from PayU (no auth middleware)

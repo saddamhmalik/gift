@@ -62,6 +62,69 @@
         </div>
     </div>
 
+    {{-- Loyalty Stats --}}
+    @php
+        $loyaltyEarned   = $user->loyaltyPoints()->where('type', 'credit')->sum('points');
+        $loyaltyRedeemed = $user->loyaltyPoints()->where('type', 'debit')->sum('points');
+        $loyaltyBalance  = $user->loyaltyBalance();
+        $loyaltyExpiring = $user->loyaltyPoints()->where('type', 'credit')->where('expires_at', '>', now())->where('expires_at', '<=', now()->addDays(7))->sum('points');
+    @endphp
+    <div class="rounded-2xl border border-amber-200/60 bg-amber-50/60 shadow-sm">
+        <div class="border-b border-amber-200/40 px-6 py-4 flex items-center gap-2">
+            <svg class="h-4 w-4 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-amber-700">Loyalty Points</h2>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 p-6">
+            <div class="text-center">
+                <p class="text-2xl font-bold text-amber-600">{{ number_format($loyaltyBalance, 0) }}</p>
+                <p class="text-xs text-zinc-500 mt-0.5">Available Balance</p>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-emerald-600">{{ number_format($loyaltyEarned, 0) }}</p>
+                <p class="text-xs text-zinc-500 mt-0.5">Lifetime Earned</p>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-red-500">{{ number_format($loyaltyRedeemed, 0) }}</p>
+                <p class="text-xs text-zinc-500 mt-0.5">Total Redeemed</p>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-amber-500">{{ number_format($loyaltyExpiring, 0) }}</p>
+                <p class="text-xs text-zinc-500 mt-0.5">Expiring (7 days)</p>
+            </div>
+        </div>
+
+        {{-- Points history --}}
+        @if($user->loyaltyPoints()->exists())
+            <div class="border-t border-amber-200/40">
+                <div class="px-6 py-3">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-3">Recent Transactions</p>
+                    <div class="space-y-2">
+                        @foreach($user->loyaltyPoints()->with('order')->latest()->take(8)->get() as $lp)
+                            <div class="flex items-center gap-3 rounded-xl border {{ $lp->type === 'credit' ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50' }} px-4 py-2.5">
+                                <div class="w-7 h-7 rounded-full {{ $lp->type === 'credit' ? 'bg-emerald-100' : 'bg-red-100' }} flex items-center justify-center shrink-0 text-xs font-bold {{ $lp->type === 'credit' ? 'text-emerald-600' : 'text-red-500' }}">
+                                    {{ $lp->type === 'credit' ? '+' : '−' }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-xs font-semibold text-zinc-800 truncate">{{ $lp->description }}</p>
+                                    <p class="text-[10px] text-zinc-400 mt-0.5">
+                                        {{ $lp->created_at->format('d M Y') }}
+                                        @if($lp->expires_at && $lp->type === 'credit')
+                                            · Expires {{ $lp->expires_at->format('d M Y') }}
+                                            @if($lp->is_expired) <span class="text-red-400">(expired)</span> @endif
+                                        @endif
+                                    </p>
+                                </div>
+                                <p class="text-sm font-extrabold shrink-0 {{ $lp->type === 'credit' ? 'text-emerald-600' : 'text-red-500' }}">
+                                    {{ $lp->type === 'credit' ? '+' : '−' }}{{ number_format($lp->points, 0) }} pts
+                                </p>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        @endif
+    </div>
+
     {{-- Order Stats --}}
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div class="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-sm text-center">

@@ -1,4 +1,4 @@
-import { Star, Zap, Gift, RefreshCw, Clock, CreditCard, TrendingUp, Briefcase } from 'lucide-react'
+import { Star, Zap, Gift, RefreshCw, Clock, TrendingUp, Briefcase } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 const TIERS = [
@@ -9,28 +9,21 @@ const TIERS = [
 ]
 
 const HOW_EARN = [
-  { step: '01', title: 'Sign In or Register', body: 'Visit payflex.in and log into your account or create a new one in seconds.' },
-  { step: '02', title: 'Choose a Product', body: 'Browse thousands of gift cards and vouchers from leading brands across India.' },
-  { step: '03', title: 'Complete Payment', body: 'Pay using any eligible mode — Debit/Credit Card, UPI, Net Banking, or supported Wallets.' },
-  { step: '04', title: 'Points Credited Instantly', body: 'PayFlex Points land in your account the moment your transaction is successfully completed.' },
-]
-
-const ELIGIBLE_MODES = [
-  { Icon: CreditCard, label: 'Debit Card' },
-  { Icon: CreditCard, label: 'Credit Card' },
-  { Icon: Zap,        label: 'UPI' },
-  { Icon: TrendingUp, label: 'Net Banking' },
-  { Icon: Star,       label: 'Wallets' },
+  { step: '01', title: 'Sign In or Register', body: 'Visit https://payflex.in/. Login with your account credentials, or register as a new user.' },
+  { step: '02', title: 'Choose a Product', body: 'Choose the product or service you want to purchase from our wide range of gift cards and vouchers.' },
+  { step: '03', title: 'Complete Payment', body: 'Complete the payment using eligible modes — Debit/Credit Card, UPI, Net Banking, or supported wallets.' },
+  { step: '04', title: 'Points Credited Instantly', body: 'PayFlex Points will be automatically credited to your account immediately after successful payment.' },
 ]
 
 const RULES = [
+  'A customer can earn Reward Points (PayFlex Points) in the range of 0.5%, 1.0%, 1.5%, and 2.0% based on the amount paid for any transaction.',
+  'A customer can check the exact PayFlex Points to be earned on the respective product or service page.',
   'PayFlex Points are valid for 30 days from the date of credit.',
   'PayFlex Points cannot be revalidated once expired.',
-  'Points will be credited immediately after a successful transaction.',
+  'PayFlex Points will be credited to your PayFlex account immediately after the transaction is successfully completed.',
+  'PayFlex Points can be earned on payments made via Debit Card, Credit Card, UPI, Net Banking, and supported wallets.',
   'PayFlex Points cannot be earned on transactions paid using PayFlex Points themselves.',
-  'The PayFlex Loyalty Program is a property of PayFlex Pvt. Ltd. Terms are subject to change.',
-  'Earn points on eligible modes only: Debit Card, Credit Card, UPI, Net Banking, and supported Wallets.',
-  'Check the exact PayFlex Points to be earned on each product page before purchasing.',
+  'The PayFlex Loyalty Program is a property of PayFlex Pvt. Ltd. Terms & conditions are subject to change as per https://payflex.in/ guidelines.',
 ]
 
 export default function LoyaltyPage() {
@@ -52,7 +45,7 @@ export default function LoyaltyPage() {
             Earn Every Time<br />You Transact
           </h1>
           <p className="text-lg text-white/85 max-w-xl mx-auto mb-8">
-            Earn up to <strong>2% PayFlex Points</strong> on every eligible payment. 1 PayFlex Point = ₹1. Use your points on your next purchase and save more, every time.
+            The PayFlex Loyalty Program gives registered users a special advantage every time they make a payment. Earn up to <strong>2% PayFlex Points</strong> on every eligible transaction. <strong>1 PayFlex Point = ₹1.</strong>
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/register" className="bg-white text-purple-700 font-bold px-8 py-3 rounded-xl hover:bg-gray-50 transition-colors">
@@ -68,7 +61,7 @@ export default function LoyaltyPage() {
       {/* Key stat */}
       <section className="bg-white border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-6 py-12 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-          {[['1 Point', '= ₹1 Value'], ['Up to 2%', 'Back on spends'], ['30 Days', 'Points validity'], ['Instant', 'Credit after payment']].map(([v, l]) => (
+          {[['1 Point', '= ₹1 Value'], ['0.5%–2%', 'Earn per transaction'], ['30 Days', 'Points validity'], ['Instant', 'Credit after payment']].map(([v, l]) => (
             <div key={l}>
               <p className="text-2xl font-extrabold text-purple-600">{v}</p>
               <p className="text-xs text-gray-500 mt-1">{l}</p>
@@ -116,20 +109,21 @@ export default function LoyaltyPage() {
         </div>
       </section>
 
-      {/* How to redeem */}
+      {/* How You Benefit + Redeem */}
       <section className="max-w-4xl mx-auto px-6 py-20">
         <div className="grid md:grid-cols-2 gap-12 items-start">
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-purple-500 mb-3 block">Redeeming Points</span>
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">Use your points, save instantly</h2>
+            <span className="text-xs font-bold uppercase tracking-widest text-purple-500 mb-3 block">How You Benefit</span>
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-4">More value, every time you transact</h2>
             <p className="text-sm text-gray-600 leading-relaxed mb-6">
-              Check your PayFlex Points balance by logging into your account. On your next eligible transaction, apply your points at checkout to reduce the payable amount. No minimums, no fuss.
+              Whether paying bills, shopping online, or booking services, the PayFlex Loyalty Program rewards you every time you transact.
             </p>
             <div className="space-y-3">
               {[
-                [RefreshCw, 'Check balance in your account dashboard'],
-                [Gift,      'Apply points at checkout on any eligible order'],
-                [Zap,       'Discount applied instantly to your payment'],
+                [Star,      'Earn PayFlex Points on every eligible transaction.'],
+                [Gift,      'Redeem PayFlex Points on future payments to save more.'],
+                [TrendingUp,'Access exclusive offers and discounts when using PayFlex Points.'],
+                [Zap,       'Maximize rewards on every payment you make with PayFlex.'],
               ].map(([Icon, text]) => (
                 <div key={text} className="flex items-start gap-3 text-sm text-gray-700">
                   <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
@@ -139,43 +133,109 @@ export default function LoyaltyPage() {
                 </div>
               ))}
             </div>
+
+            <div className="mt-8">
+              <span className="text-xs font-bold uppercase tracking-widest text-purple-500 mb-3 block">How to Redeem</span>
+              <div className="space-y-3">
+                {[
+                  [RefreshCw, 'Check your PayFlex Points balance by logging into your account.'],
+                  [Gift,      'Use your points on your next eligible transaction to reduce the payable amount.'],
+                ].map(([Icon, text]) => (
+                  <div key={text} className="flex items-start gap-3 text-sm text-gray-700">
+                    <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                      <Icon size={14} className="text-purple-500" />
+                    </div>
+                    {text}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-purple-500 mb-3 block">Special Occasions</span>
-            <div className="space-y-4">
-              {[
-                [Star,      'Birthday & Anniversaries', 'Celebrate life\'s moments — earn points while gifting for any special occasion.'],
-                [Briefcase, 'Corporate & Bulk Orders', 'Place bulk payments for events or client gifting and earn significant points to redeem later.'],
-                [Gift,      'Festivals & Holidays',    'From Diwali to New Year — PayFlex rewards you every time, all year round.'],
-              ].map(([Icon, title, body]) => (
-                <div key={title} className="flex gap-4 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-                  <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
-                    <Icon size={16} className="text-purple-500" />
+          <div className="space-y-6">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-purple-500 mb-3 block">Special Occasion Rewards</span>
+              <div className="space-y-3">
+                {[
+                  [Star,      'Birthday & Anniversaries', 'Celebrate life\'s moments with PayFlex. Earn PayFlex Points while making payments for birthdays, anniversaries, and other special occasions.'],
+                  [Gift,      'Festivals & Holidays',    'Collect points during Diwali, New Year, and every festival — then redeem them on your next transaction while enjoying exclusive offers.'],
+                ].map(([Icon, title, body]) => (
+                  <div key={title} className="flex gap-4 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                    <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                      <Icon size={16} className="text-purple-500" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 text-sm">{title}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{body}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-800 text-sm">{title}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{body}</p>
-                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="text-xs font-bold uppercase tracking-widest text-purple-500 mb-3 block">Corporate &amp; Bulk Transactions</span>
+              <div className="flex gap-4 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                  <Briefcase size={16} className="text-purple-500" />
                 </div>
-              ))}
+                <div>
+                  <p className="font-semibold text-gray-800 text-sm">Bulk Payments &amp; Corporate Events</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                    Planning bulk payments for corporate events, office functions, or client gifting? Use PayFlex for large transactions to earn PayFlex Points, which can be redeemed later to enjoy extra value and discounts.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Eligible payment modes */}
+      {/* Eligible payment modes + Expiry */}
       <section className="bg-gray-50 py-14">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h3 className="text-lg font-bold text-gray-800 mb-6">Eligible Payment Modes</h3>
-          <div className="flex flex-wrap justify-center gap-3">
-            {['Debit Card', 'Credit Card', 'UPI', 'Net Banking', 'Supported Wallets'].map(mode => (
-              <span key={mode} className="bg-white border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-xl shadow-sm">
-                {mode}
-              </span>
-            ))}
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="text-center mb-8">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Eligible Payment Modes</h3>
+            <div className="flex flex-wrap justify-center gap-3">
+              {['Debit Card', 'Credit Card', 'UPI', 'Net Banking', 'Supported Wallets'].map(mode => (
+                <span key={mode} className="bg-white border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-xl shadow-sm">
+                  {mode}
+                </span>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-3">PayFlex Points cannot be earned on transactions paid using PayFlex Points themselves.</p>
           </div>
-          <p className="text-xs text-gray-400 mt-4">Points cannot be earned on transactions paid using PayFlex Points themselves.</p>
+
+          <div className="grid sm:grid-cols-2 gap-4 mt-6">
+            <div className="bg-white rounded-2xl border border-amber-200 p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock size={16} className="text-amber-500" />
+                <h4 className="font-bold text-gray-800 text-sm">Expiry of PayFlex Points</h4>
+              </div>
+              <ul className="space-y-2">
+                {[
+                  'PayFlex Points must be used before their validity date.',
+                  'Expired points cannot be revalidated.',
+                ].map((t, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-gray-500">
+                    <span className="w-4 h-4 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">{i + 1}</span>
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-white rounded-2xl border border-purple-200 p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <Star size={16} className="text-purple-500" fill="currentColor" />
+                <h4 className="font-bold text-gray-800 text-sm">Points Value</h4>
+              </div>
+              <div className="text-center py-2">
+                <p className="text-3xl font-black text-purple-600">1 pt = ₹1</p>
+                <p className="text-xs text-gray-400 mt-1">Valid for <strong>30 days</strong> from credit date</p>
+                <p className="text-xs text-gray-400 mt-1">Earn up to <strong>2%</strong> on every eligible transaction</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -197,10 +257,18 @@ export default function LoyaltyPage() {
       {/* CTA */}
       <section className="bg-gradient-to-br from-purple-600 to-primary-600 py-16 text-center text-white">
         <h2 className="text-2xl font-extrabold mb-3">Start Earning Today</h2>
-        <p className="text-white/80 text-sm mb-8">Every transaction is a step toward your next reward. Join PayFlex now.</p>
-        <Link to="/register" className="bg-white text-purple-700 font-bold px-8 py-3 rounded-xl hover:bg-gray-50 transition-colors inline-block">
-          Create Free Account
-        </Link>
+        <p className="text-white/80 text-sm mb-2">Every transaction is a step toward your next reward.</p>
+        <p className="text-white/60 text-xs mb-8">
+          Enjoy payments with extra value for daily essentials, lifestyle, travel, entertainment, and more.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link to="/register" className="bg-white text-purple-700 font-bold px-8 py-3 rounded-xl hover:bg-gray-50 transition-colors inline-block">
+            Create Free Account
+          </Link>
+          <Link to="/my-points" className="border border-white/40 text-white font-semibold px-8 py-3 rounded-xl hover:bg-white/10 transition-colors inline-block">
+            View My Points
+          </Link>
+        </div>
       </section>
     </div>
   )

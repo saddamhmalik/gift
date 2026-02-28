@@ -53,6 +53,25 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function loyaltyPoints(): HasMany
+    {
+        return $this->hasMany(LoyaltyPoint::class);
+    }
+
+    public function loyaltyBalance(): float
+    {
+        $earned = (float) $this->loyaltyPoints()
+            ->where('type', LoyaltyPoint::TYPE_CREDIT)
+            ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->sum('points');
+
+        $spent = (float) $this->loyaltyPoints()
+            ->where('type', LoyaltyPoint::TYPE_DEBIT)
+            ->sum('points');
+
+        return max(0, $earned - $spent);
+    }
+
     protected function casts(): array
     {
         return [

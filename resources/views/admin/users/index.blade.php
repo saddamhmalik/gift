@@ -69,7 +69,7 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 text-zinc-600">{{ $user->phone ?: '—' }}</td>
-                            <td class="px-6 py-4">
+                                <td class="px-6 py-4">
                                 <span class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-700">
                                     {{ $user->orders_count }}
                                 </span>

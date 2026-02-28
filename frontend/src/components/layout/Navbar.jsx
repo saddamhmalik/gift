@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Zap, Search, User, LogOut, ChevronDown, Menu, X, ShoppingBag, Tag } from 'lucide-react'
+import { Zap, Search, User, LogOut, ChevronDown, Menu, X, ShoppingBag, Tag, Star } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../contexts/AuthContext'
 import { getTags } from '../../api/tags'
+import { getLoyaltyBalance } from '../../api/loyalty'
 
 
 const NAV_LINKS = [
@@ -27,6 +28,14 @@ export default function Navbar() {
 
   const { data: tagsData } = useQuery({ queryKey: ['tags'], queryFn: getTags, staleTime: 300_000 })
   const tags = tagsData?.data ?? []
+
+  const { data: loyaltyData } = useQuery({
+    queryKey: ['loyalty', 'balance'],
+    queryFn:  getLoyaltyBalance,
+    enabled:  !!user,
+    staleTime: 1000 * 60,
+  })
+  const pointBalance = loyaltyData?.data?.balance ?? 0
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -156,44 +165,68 @@ export default function Navbar() {
 
             {/* Auth */}
             {user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setUserMenuOpen(v => !v)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/8 hover:bg-white/15 transition-all"
-                >
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary-400 to-brand flex items-center justify-center text-white text-[10px] font-bold">
-                    {(user.first_name?.[0] || user.name?.[0] || 'U').toUpperCase()}
-                  </div>
-                  <span className="hidden lg:inline text-sm font-medium text-slate-300">
-                    {user.first_name || user.name?.split(' ')[0]}
-                  </span>
-                  <ChevronDown size={13} className={`text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-
-                {userMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                    <div className="absolute right-0 mt-2 w-48 bg-surface-900 border border-white/10 rounded-2xl shadow-xl shadow-black/40 py-1.5 z-50 overflow-hidden">
-                      <div className="px-4 py-2.5 border-b border-white/8 mb-1">
-                        <p className="text-xs text-slate-500">Signed in as</p>
-                        <p className="text-sm font-semibold text-white truncate">{user.email}</p>
-                      </div>
-                      <Link to="/profile" onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-colors">
-                        <User size={14} /> My Account
-                      </Link>
-                      <Link to="/orders" onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-colors">
-                        <ShoppingBag size={14} /> My Orders
-                      </Link>
-                      <div className="my-1 border-t border-white/8" />
-                      <button onClick={handleLogout}
-                        className="flex items-center gap-2.5 w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors">
-                        <LogOut size={14} /> Sign Out
-                      </button>
-                    </div>
-                  </>
+              <div className="flex items-center gap-2">
+                {/* Points pill */}
+                {pointBalance > 0 && (
+                  <Link
+                    to="/my-points"
+                    className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-400/25 text-amber-300 hover:bg-amber-500/25 transition-all text-xs font-bold"
+                    title="My PayFlex Points"
+                  >
+                    <Star size={11} fill="currentColor" />
+                    {pointBalance.toFixed(0)} pts
+                  </Link>
                 )}
+
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(v => !v)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/8 hover:bg-white/15 transition-all"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary-400 to-brand flex items-center justify-center text-white text-[10px] font-bold">
+                      {(user.first_name?.[0] || user.name?.[0] || 'U').toUpperCase()}
+                    </div>
+                    <span className="hidden lg:inline text-sm font-medium text-slate-300">
+                      {user.first_name || user.name?.split(' ')[0]}
+                    </span>
+                    <ChevronDown size={13} className={`text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {userMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                      <div className="absolute right-0 mt-2 w-52 bg-surface-900 border border-white/10 rounded-2xl shadow-xl shadow-black/40 py-1.5 z-50 overflow-hidden">
+                        <div className="px-4 py-2.5 border-b border-white/8 mb-1">
+                          <p className="text-xs text-slate-500">Signed in as</p>
+                          <p className="text-sm font-semibold text-white truncate">{user.email}</p>
+                          {pointBalance > 0 && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <Star size={11} className="text-amber-400" fill="currentColor" />
+                              <span className="text-xs font-bold text-amber-400">{pointBalance.toFixed(0)} PayFlex Points</span>
+                            </div>
+                          )}
+                        </div>
+                        <Link to="/profile" onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-colors">
+                          <User size={14} /> My Account
+                        </Link>
+                        <Link to="/orders" onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-colors">
+                          <ShoppingBag size={14} /> My Orders
+                        </Link>
+                        <Link to="/my-points" onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors">
+                          <Star size={14} /> My Points {pointBalance > 0 && <span className="ml-auto text-xs bg-amber-500/20 px-1.5 py-0.5 rounded-full">{pointBalance.toFixed(0)}</span>}
+                        </Link>
+                        <div className="my-1 border-t border-white/8" />
+                        <button onClick={handleLogout}
+                          className="flex items-center gap-2.5 w-full px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors">
+                          <LogOut size={14} /> Sign Out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="hidden sm:flex items-center gap-2">
@@ -257,7 +290,11 @@ export default function Navbar() {
           )}
           {user && (
             <div className="pt-3 border-t border-white/8 mt-3 space-y-1">
-              <Link to="/orders" className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/8 transition-colors"><ShoppingBag size={14} /> My Orders</Link>
+              <Link to="/orders"    className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/8 transition-colors"><ShoppingBag size={14} /> My Orders</Link>
+              <Link to="/my-points" className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors">
+                <Star size={14} /> My Points
+                {pointBalance > 0 && <span className="ml-auto text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">{pointBalance.toFixed(0)}</span>}
+              </Link>
               <button onClick={handleLogout} className="flex items-center gap-2 w-full py-2.5 px-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-colors"><LogOut size={14} /> Sign Out</button>
             </div>
           )}

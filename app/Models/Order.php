@@ -14,6 +14,8 @@ class Order extends Model
         'payment_txnid',
         'status',
         'total_amount',
+        'points_used',
+        'points_earned',
         'currency_code',
         'woohoo_refno',
         'woohoo_order_id',
@@ -31,8 +33,10 @@ class Order extends Model
     protected function casts(): array
     {
         return [
-            'total_amount' => 'decimal:2',
-            'woohoo_sync' => 'boolean',
+            'total_amount'  => 'decimal:2',
+            'points_used'   => 'decimal:2',
+            'points_earned' => 'decimal:2',
+            'woohoo_sync'   => 'boolean',
             'address' => 'array',
             'woohoo_request' => 'array',
             'woohoo_response' => 'array',

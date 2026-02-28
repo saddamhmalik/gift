@@ -6,12 +6,14 @@ use App\Exceptions\Woohoo\WoohooOrderException;
 use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\V1\OrderResource;
 use App\Repositories\OrderRepository;
+use App\Services\Loyalty\LoyaltyService;
 use App\Services\Order\FulfillOrderViaWoohooService;
 use App\Services\Order\OrderService;
 use App\Services\Payment\PayUService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class PayUController extends Controller
@@ -21,17 +23,19 @@ class PayUController extends Controller
         protected OrderService $orderService,
         protected OrderRepository $orderRepository,
         protected FulfillOrderViaWoohooService $fulfillService,
+        protected LoyaltyService $loyaltyService,
     ) {}
 
     /**
      * POST /api/v1/payment/initiate
-     * Authenticated. Creates/fetches order, sets item if not set, returns PayU params + hash.
+     * Authenticated. Creates/fetches order, applies loyalty points if requested, returns PayU params.
      */
     public function initiate(Request $request): JsonResponse
     {
         $request->validate([
-            'order_token'  => 'nullable|string',
-            'order_id'     => 'nullable|integer|exists:orders,id',
+            'order_token'   => 'nullable|string',
+            'order_id'      => 'nullable|integer|exists:orders,id',
+            'points_to_use' => 'nullable|numeric|min:0',
         ]);
 
         $user  = $request->user();
@@ -60,23 +64,45 @@ class PayUController extends Controller
             return $this->error('Order total is invalid.', 422);
         }
 
+        // Handle loyalty points redemption request
+        $pointsToUse = (float) ($request->input('points_to_use', 0));
+        if ($pointsToUse > 0) {
+            $balance = $this->loyaltyService->balance($user);
+            // Cap points to order total and user balance
+            $pointsToUse = min($pointsToUse, $balance, (float) $order->total_amount);
+            $pointsToUse = round($pointsToUse, 2);
+
+            if ($pointsToUse < (float) config('loyalty.min_redeem', 1)) {
+                $pointsToUse = 0;
+            }
+        }
+
+        // Persist points_used on the order so PayUService can reduce the charge amount
+        if ($order->points_used != $pointsToUse) {
+            $order->update(['points_used' => $pointsToUse]);
+            $order->refresh();
+        }
+
         $params = $this->payUService->buildPaymentParams($order, $user);
 
         return $this->success([
-            'order'       => new OrderResource($order),
-            'payu_params' => $params,
+            'order'         => new OrderResource($order),
+            'payu_params'   => $params,
+            'points_applied' => $pointsToUse,
+            'amount_to_pay'  => (float) $params['amount'],
         ], 'Payment initiated');
     }
 
     /**
      * POST /api/v1/payment/payu/success
-     * PayU posts here after successful payment. Verifies hash, fulfills order via Woohoo, redirects to frontend.
+     * PayU posts here after successful payment. Verifies hash, fulfills order via Woohoo,
+     * handles loyalty credits/debits, redirects to frontend.
      */
     public function payuSuccess(Request $request): RedirectResponse
     {
-        $params    = $request->all();
+        $params      = $request->all();
         $frontendUrl = rtrim(config('payu.frontend_url'), '/');
-        $orderId   = $params['udf1'] ?? null;
+        $orderId     = $params['udf1'] ?? null;
 
         Log::info('PayU success callback received', [
             'txnid'    => $params['mihpayid'] ?? $params['txnid'] ?? null,
@@ -111,26 +137,38 @@ class PayUController extends Controller
         }
 
         try {
-            $user = $order->user;
-            // Prefer user's stored phone (already validated at registration);
-            // fall back to what PayU echoed back — the payload builder will E164-sanitize it.
+            $user     = $order->user;
             $rawPhone = $user?->phone ?: ($params['phone'] ?? '');
-            $billing = [
+            $billing  = [
                 'email'     => $params['email']    ?? $user?->email,
                 'telephone' => $rawPhone,
                 'name'      => $params['firstname'] ?? $user?->name,
                 'firstname' => $params['firstname'] ?? $user?->first_name ?? $user?->name,
             ];
 
-            $this->fulfillService->fulfill($order, $billing, [], false);
+            DB::transaction(function () use ($order, $billing, $user) {
+                // Fulfill via Woohoo
+                $this->fulfillService->fulfill($order, $billing, [], false);
 
-            Log::info('PayU success: order fulfilled', ['order_id' => $order->id]);
+                // Debit redeemed points now (payment confirmed)
+                if ($user && (float) $order->points_used > 0) {
+                    $this->loyaltyService->debitForOrder($order, (float) $order->points_used);
+                }
+
+                // Credit new earned points (only on the cash portion)
+                if ($user) {
+                    $this->loyaltyService->creditForOrder($order);
+                }
+            });
+
+            Log::info('PayU success: order fulfilled + loyalty processed', ['order_id' => $order->id]);
             return redirect($frontendUrl . '/orders/' . $order->id . '?payment=success');
+
         } catch (WoohooOrderException $e) {
             Log::error('PayU success: Woohoo fulfillment failed', [
-                'order_id'     => $order->id,
-                'message'      => $e->getMessage(),
-                'woohoo_code'  => $e->getWoohooCode(),
+                'order_id'    => $order->id,
+                'message'     => $e->getMessage(),
+                'woohoo_code' => $e->getWoohooCode(),
             ]);
             return redirect($frontendUrl . '/orders/' . $order->id . '?payment=paid&fulfillment=failed');
         } catch (\Throwable $e) {
@@ -145,6 +183,7 @@ class PayUController extends Controller
     /**
      * POST /api/v1/payment/payu/failure
      * PayU posts here when payment fails/is cancelled.
+     * Resets points_used on the order so the user's balance isn't locked.
      */
     public function payuFailure(Request $request): RedirectResponse
     {
@@ -158,6 +197,14 @@ class PayUController extends Controller
             'order_id' => $orderId,
             'error'    => $params['error_Message'] ?? $params['field9'] ?? null,
         ]);
+
+        // Reset points_used so the user's balance isn't reserved for a failed order
+        if ($orderId) {
+            $order = $this->orderRepository->find((int) $orderId);
+            if ($order && $order->status === \App\Models\Order::STATUS_PENDING) {
+                $order->update(['points_used' => 0]);
+            }
+        }
 
         $query = http_build_query([
             'reason'   => $params['error_Message'] ?? $params['status'] ?? 'Payment failed',
