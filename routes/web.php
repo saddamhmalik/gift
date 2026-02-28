@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\TagController;
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -38,6 +39,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('products/sync', [ProductController::class, 'sync'])->name('products.sync');
         Route::post('products/sync-details', [ProductController::class, 'syncDetails'])->name('products.sync-details');
         Route::resource('tags', TagController::class)->except(['show']);
+        Route::get('users', [UserController::class, 'index'])->name('users.index');
+        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::post('cache/clear', [CacheController::class, 'clear'])->name('cache.clear');
     });
 });
