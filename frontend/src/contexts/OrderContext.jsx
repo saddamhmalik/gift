@@ -51,18 +51,32 @@ export function OrderProvider({ children }) {
     }
   }, [order])
 
-  const addItem = useCallback(async ({ productId, quantity, unitPrice, selectedDenomination }) => {
+  const addItem = useCallback(async ({
+    productId, quantity, unitPrice, selectedDenomination,
+    // Gift fields (optional)
+    orderMode, deliveryMode,
+    giftRecipientName, giftRecipientEmail, giftRecipientPhone, giftMessage,
+  }) => {
     setLoading(true)
     setError(null)
     try {
       const o = await ensureOrder()
-      const res = await setOrderItem({
-        order_token: o.order_token,
-        product_id: productId,
+      const payload = {
+        order_token:           o.order_token,
+        product_id:            productId,
         quantity,
-        unit_price: unitPrice,
+        unit_price:            unitPrice,
         selected_denomination: selectedDenomination,
-      })
+        order_mode:            orderMode   || 'SELF',
+        delivery_mode:         deliveryMode || (orderMode === 'GIFT' ? 'EMAIL' : 'API'),
+      }
+      if (orderMode === 'GIFT') {
+        if (giftRecipientName)  payload.gift_recipient_name  = giftRecipientName
+        if (giftRecipientEmail) payload.gift_recipient_email = giftRecipientEmail
+        if (giftRecipientPhone) payload.gift_recipient_phone = giftRecipientPhone
+        if (giftMessage)        payload.gift_message         = giftMessage
+      }
+      const res = await setOrderItem(payload)
       setOrder(res.data)
       return res.data
     } catch (err) {

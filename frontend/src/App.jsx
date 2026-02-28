@@ -21,6 +21,8 @@ import LoyaltyPage        from './pages/LoyaltyPage'
 import MyPointsPage       from './pages/MyPointsPage'
 import TagsPage           from './pages/TagsPage'
 import TagPage            from './pages/TagPage'
+import CardBalancePage    from './pages/CardBalancePage'
+import ProfilePage        from './pages/ProfilePage'
 import NotFoundPage       from './pages/NotFoundPage'
 
 const queryClient = new QueryClient({
@@ -73,6 +75,10 @@ export default function App() {
               <Route path="/terms"                element={<Layout><TermsPage /></Layout>} />
               <Route path="/loyalty"              element={<Layout><LoyaltyPage /></Layout>} />
               <Route path="/my-points"            element={<Layout><MyPointsPage /></Layout>} />
+              <Route path="/check-balance"        element={<Layout><CardBalancePage /></Layout>} />
+              <Route path="/profile"             element={<Layout><ProfilePage /></Layout>} />
+              {/* Email change verification landing */}
+              <Route path="/profile/verify-email" element={<Layout><ProfilePage /></Layout>} />
 
               {/* Catch-all */}
               <Route path="*"                     element={<Layout><NotFoundPage /></Layout>} />

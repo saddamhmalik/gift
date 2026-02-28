@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BalanceController;
+use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\LoyaltyController;
 use App\Http\Controllers\Api\V1\OrderController;
@@ -17,6 +19,9 @@ Route::get('/user', function (Request $request) {
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', fn () => response()->json(['status' => 'ok', 'app' => config('app.name').' API']));
+
+    // Gift card balance check — public, no auth required
+    Route::post('/balance', [BalanceController::class, 'check']);
 
     // Public APIs (no auth required)
     Route::get('/categories', [CategoryController::class, 'index']);
@@ -50,10 +55,24 @@ Route::prefix('v1')->group(function () {
         Route::post('/order', [OrderController::class, 'store']);
         Route::get('/order', [OrderController::class, 'show']);
         Route::get('/order/{order}', [OrderController::class, 'showById']);
-        Route::get('/order/{order}/cards', [OrderController::class, 'fetchCards']);
+        Route::get('/order/{order}/cards',  [OrderController::class, 'fetchCards']);
+        Route::post('/order/{order}/resend', [OrderController::class, 'resend']);
         Route::post('/order/item', [OrderController::class, 'setItem']);
         Route::put('/order/item', [OrderController::class, 'updateItem']);
         Route::delete('/order/item', [OrderController::class, 'clearItem']);
+
+        // Profile management
+        Route::prefix('profile')->group(function () {
+            Route::put('/',                   [ProfileController::class, 'update']);
+            Route::post('/avatar',            [ProfileController::class, 'uploadAvatar']);
+            Route::delete('/avatar',          [ProfileController::class, 'removeAvatar']);
+            Route::post('/email',             [ProfileController::class, 'requestEmailChange']);
+            Route::post('/email/verify',      [ProfileController::class, 'verifyEmailChange']);
+            Route::post('/email/resend',      [ProfileController::class, 'resendEmailVerification']);
+            Route::post('/phone',             [ProfileController::class, 'requestPhoneChange']);
+            Route::post('/phone/verify',      [ProfileController::class, 'verifyPhoneChange']);
+            Route::post('/password',          [ProfileController::class, 'changePassword']);
+        });
 
         // PayU payment initiation (authenticated)
         Route::post('/payment/initiate', [PayUController::class, 'initiate']);

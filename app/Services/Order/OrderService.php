@@ -103,9 +103,17 @@ class OrderService
 
     /**
      * Set or update the single product on the order (replaces any existing item).
+     *
+     * @param  array{order_mode?:string, delivery_mode?:string, gift_recipient_name?:string, gift_recipient_email?:string, gift_recipient_phone?:string, gift_message?:string}  $giftFields
      */
-    public function setOrderProduct(Order $order, int $productId, int $quantity, ?float $unitPrice = null, ?string $selectedDenomination = null): Order
-    {
+    public function setOrderProduct(
+        Order $order,
+        int $productId,
+        int $quantity,
+        ?float $unitPrice = null,
+        ?string $selectedDenomination = null,
+        array $giftFields = []
+    ): Order {
         $product = $this->productRepository->find($productId);
         if (! $product || ! $product->is_active) {
             abort(404, 'Product not found or unavailable');
@@ -117,8 +125,23 @@ class OrderService
             throw new InvalidArgumentException('Quantity must be between 1 and 99.');
         }
 
-        return DB::transaction(function () use ($order, $product, $quantity, $unitPrice, $selectedDenomination) {
+        return DB::transaction(function () use ($order, $product, $quantity, $unitPrice, $selectedDenomination, $giftFields) {
             $order = $this->orderRepository->lockForUpdate($order);
+
+            // Persist gift / delivery fields on the order itself
+            if (! empty($giftFields)) {
+                $updateData = array_filter([
+                    'order_mode'           => $giftFields['order_mode'] ?? null,
+                    'delivery_mode'        => $giftFields['delivery_mode'] ?? null,
+                    'gift_recipient_name'  => $giftFields['gift_recipient_name'] ?? null,
+                    'gift_recipient_email' => $giftFields['gift_recipient_email'] ?? null,
+                    'gift_recipient_phone' => $giftFields['gift_recipient_phone'] ?? null,
+                    'gift_message'         => $giftFields['gift_message'] ?? null,
+                ], fn ($v) => $v !== null);
+                if (! empty($updateData)) {
+                    $order->update($updateData);
+                }
+            }
 
             $existing = $this->orderItemRepository->getByOrder($order);
             if ($existing) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ShoppingCart, ChevronRight, Shield, Zap, RefreshCw, Info, Loader2, AlertCircle, Star, Gift } from 'lucide-react'
+import { ShoppingCart, ChevronRight, Shield, Zap, RefreshCw, Info, Loader2, AlertCircle, Star, Gift, User, Mail, Phone, MessageSquare, Send } from 'lucide-react'
 import { getProduct } from '../api/products'
 import { getLoyaltyBalance } from '../api/loyalty'
 import { useAuth } from '../contexts/AuthContext'
@@ -69,6 +69,14 @@ export default function ProductDetailPage() {
   const [usePoints, setUsePoints]         = useState(false)
   const [buyError, setBuyError]           = useState('')
   const [paying, setPaying]               = useState(false)
+
+  // Gift mode state
+  const [isGift, setIsGift]                 = useState(false)
+  const [giftDelivery, setGiftDelivery]     = useState('EMAIL')
+  const [recipientName, setRecipientName]   = useState('')
+  const [recipientEmail, setRecipientEmail] = useState('')
+  const [recipientPhone, setRecipientPhone] = useState('')
+  const [giftMessage, setGiftMessage]       = useState('')
 
   const { data, isLoading, isError } = useQuery({
     queryKey:  ['product', slug],
@@ -149,6 +157,18 @@ export default function ProductDetailPage() {
       }
     }
 
+    // Gift validation
+    if (isGift) {
+      if (!recipientEmail && !recipientPhone) {
+        setBuyError('Please enter the recipient\'s email or phone number.')
+        return
+      }
+      if (recipientEmail && !/\S+@\S+\.\S+/.test(recipientEmail)) {
+        setBuyError('Please enter a valid recipient email address.')
+        return
+      }
+    }
+
     setPaying(true)
     try {
       const orderData = await addItem({
@@ -156,6 +176,13 @@ export default function ProductDetailPage() {
         quantity:             qty,
         unitPrice:            effectivePrice,
         selectedDenomination: String(effectivePrice),
+        // Gift fields
+        orderMode:            isGift ? 'GIFT' : 'SELF',
+        deliveryMode:         isGift ? giftDelivery : 'API',
+        giftRecipientName:    isGift ? recipientName  : undefined,
+        giftRecipientEmail:   isGift ? recipientEmail : undefined,
+        giftRecipientPhone:   isGift ? recipientPhone : undefined,
+        giftMessage:          isGift ? giftMessage    : undefined,
       })
 
       const res = await initiatePayment({
@@ -348,6 +375,105 @@ export default function ProductDetailPage() {
             </div>
           )}
 
+          {/* ── Send as Gift Toggle ── */}
+          {user && (
+            <div className={`rounded-2xl border-2 p-4 transition-all ${isGift ? 'border-violet-400 bg-violet-50' : 'border-gray-200 bg-gray-50'}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isGift ? 'bg-violet-100' : 'bg-gray-100'}`}>
+                    <Gift size={16} className={isGift ? 'text-violet-600' : 'text-gray-500'} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Send as a Gift</p>
+                    <p className="text-xs text-gray-500">Deliver directly to someone else via email or SMS</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsGift(v => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none ${isGift ? 'bg-violet-500' : 'bg-gray-300'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isGift ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+
+              {isGift && (
+                <div className="mt-4 pt-4 border-t border-violet-200 space-y-3">
+                  {/* Delivery channel */}
+                  <div>
+                    <p className="text-xs font-semibold text-gray-600 mb-1.5 flex items-center gap-1.5">
+                      <Send size={11} /> Delivery Method
+                    </p>
+                    <div className="flex gap-2">
+                      {[['EMAIL', 'Email'], ['SMS', 'SMS'], ['ANY', 'Both']].map(([val, label]) => (
+                        <button
+                          key={val}
+                          onClick={() => setGiftDelivery(val)}
+                          className={`flex-1 py-1.5 text-xs font-semibold rounded-lg border-2 transition-all ${giftDelivery === val ? 'border-violet-500 bg-violet-100 text-violet-700' : 'border-gray-200 bg-white text-gray-600 hover:border-violet-300'}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recipient name */}
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1.5">
+                      <User size={11} /> Recipient&apos;s Name <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <input
+                      type="text" value={recipientName} onChange={e => setRecipientName(e.target.value)}
+                      placeholder="e.g. Rahul Sharma"
+                      className="w-full border-2 border-gray-200 focus:border-violet-400 rounded-xl px-3 py-2 text-sm outline-none transition-all"
+                    />
+                  </div>
+
+                  {/* Recipient email */}
+                  {(giftDelivery === 'EMAIL' || giftDelivery === 'ANY') && (
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1.5">
+                        <Mail size={11} /> Recipient&apos;s Email {giftDelivery === 'EMAIL' && <span className="text-red-400">*</span>}
+                      </label>
+                      <input
+                        type="email" value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)}
+                        placeholder="rahul@example.com"
+                        className="w-full border-2 border-gray-200 focus:border-violet-400 rounded-xl px-3 py-2 text-sm outline-none transition-all"
+                      />
+                    </div>
+                  )}
+
+                  {/* Recipient phone */}
+                  {(giftDelivery === 'SMS' || giftDelivery === 'ANY') && (
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1.5">
+                        <Phone size={11} /> Recipient&apos;s Phone {giftDelivery === 'SMS' && <span className="text-red-400">*</span>}
+                      </label>
+                      <input
+                        type="tel" value={recipientPhone} onChange={e => setRecipientPhone(e.target.value)}
+                        placeholder="+91 98765 43210"
+                        className="w-full border-2 border-gray-200 focus:border-violet-400 rounded-xl px-3 py-2 text-sm outline-none transition-all"
+                      />
+                    </div>
+                  )}
+
+                  {/* Gift message */}
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 flex items-center gap-1.5">
+                      <MessageSquare size={11} /> Gift Message <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <textarea
+                      rows={2} value={giftMessage} onChange={e => setGiftMessage(e.target.value)}
+                      placeholder="Happy Birthday! Hope you enjoy this gift 🎉"
+                      className="w-full border-2 border-gray-200 focus:border-violet-400 rounded-xl px-3 py-2 text-sm outline-none transition-all resize-none"
+                      maxLength={500}
+                    />
+                    <p className="text-right text-xs text-gray-400 mt-0.5">{giftMessage.length}/500</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Order total */}
           <div className="bg-gradient-to-r from-primary-50 to-amber-50 rounded-2xl p-4 border border-primary-100">
             <div className="flex items-center justify-between">
@@ -406,6 +532,8 @@ export default function ProductDetailPage() {
             >
               {busy ? (
                 <><Loader2 size={18} className="animate-spin" /> {paying ? 'Redirecting to PayU…' : 'Preparing order…'}</>
+              ) : isGift ? (
+                <><Gift size={18} /> {usePoints && pointsApplied > 0 ? `Send Gift · Pay ₹${amountToPay.toLocaleString()}` : 'Send Gift'}</>
               ) : (
                 <><ShoppingCart size={18} /> {usePoints && pointsApplied > 0 ? `Pay ₹${amountToPay.toLocaleString()}` : 'Pay Now'}</>
               )}

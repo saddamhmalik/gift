@@ -3,10 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import {
   CheckCircle, Clock, XCircle, Copy, Gift, ArrowLeft,
   Loader2, RefreshCw, CreditCard, ExternalLink, Info,
-  Barcode, AlertCircle, Eye, EyeOff,
+  Barcode, AlertCircle, Eye, EyeOff, Mail, Phone, MessageSquare, Send,
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
-import { getOrderById, fetchOrderCards } from '../api/orders'
+import { getOrderById, fetchOrderCards, resendOrderCards } from '../api/orders'
 
 const STATUS_CONFIG = {
   completed: { Icon: CheckCircle, color: 'text-green-500',  bg: 'bg-green-50',  border: 'border-green-200', label: 'Completed'  },
@@ -233,6 +233,15 @@ export default function OrderDetailPage() {
   const [cardsFetching, setCardsFetching]   = useState(false)
   const [cardsError, setCardsError]         = useState(null)
 
+  // Resend state
+  const [showResend, setShowResend]         = useState(false)
+  const [resendName, setResendName]         = useState('')
+  const [resendEmail, setResendEmail]       = useState('')
+  const [resendPhone, setResendPhone]       = useState('')
+  const [resending, setResending]           = useState(false)
+  const [resendSuccess, setResendSuccess]   = useState('')
+  const [resendError, setResendError]       = useState('')
+
   const handleFetchCards = useCallback(async () => {
     setCardsFetching(true)
     setCardsError(null)
@@ -252,6 +261,27 @@ export default function OrderDetailPage() {
       setCardsFetching(false)
     }
   }, [id])
+
+  const handleResend = useCallback(async () => {
+    setResending(true)
+    setResendSuccess('')
+    setResendError('')
+    try {
+      const payload = {}
+      if (resendName.trim())  payload.name      = resendName.trim()
+      if (resendEmail.trim()) payload.email     = resendEmail.trim()
+      if (resendPhone.trim()) payload.telephone = resendPhone.trim()
+      await resendOrderCards(id, payload)
+      setResendSuccess('Card details have been resent successfully!')
+      setShowResend(false)
+      // Reset fields after success
+      setResendName(''); setResendEmail(''); setResendPhone('')
+    } catch (err) {
+      setResendError(err.response?.data?.message || err.message || 'Failed to resend. Please try again.')
+    } finally {
+      setResending(false)
+    }
+  }, [id, resendName, resendEmail, resendPhone])
 
   const order = data?.data
 
@@ -289,9 +319,13 @@ export default function OrderDetailPage() {
           <div>
             <p className="font-semibold text-green-800">Payment Successful!</p>
             <p className="text-sm text-green-700 mt-0.5">
-              {order.status === 'completed'
-                ? 'Your gift card has been delivered below.'
-                : 'We\'re processing your gift card — this usually takes under a minute.'}
+              {order.order_mode === 'GIFT'
+                ? order.status === 'completed'
+                  ? `Your gift has been sent to ${order.gift_recipient_email || order.gift_recipient_name || 'the recipient'}.`
+                  : 'We\'re preparing your gift — it will be delivered to the recipient shortly.'
+                : order.status === 'completed'
+                  ? 'Your gift card has been delivered below.'
+                  : 'We\'re processing your gift card — this usually takes under a minute.'}
             </p>
           </div>
         </div>
@@ -364,6 +398,132 @@ export default function OrderDetailPage() {
         </div>
       )}
 
+      {/* Gift Recipient Info */}
+      {order.order_mode === 'GIFT' && (
+        <div className="card p-5 mb-4 border-l-4 border-violet-400">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <Gift size={15} className="text-violet-500" />
+              Gift Details
+            </h3>
+            {/* Resend button — only for EMAIL/SMS/ANY orders */}
+            {order.woohoo_delivery_mode && order.woohoo_delivery_mode !== 'API' && order.status === 'completed' && (
+              <button
+                onClick={() => { setShowResend(v => !v); setResendSuccess(''); setResendError('') }}
+                className="text-xs font-semibold text-violet-600 hover:text-violet-800 flex items-center gap-1 border border-violet-200 rounded-lg px-2.5 py-1 hover:bg-violet-50 transition-colors"
+              >
+                <RefreshCw size={11} /> Resend
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            {order.gift_recipient_name && (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Send size={13} className="text-gray-400 shrink-0" />
+                <span className="font-medium">To:</span>
+                <span>{order.gift_recipient_name}</span>
+              </div>
+            )}
+            {order.gift_recipient_email && (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Mail size={13} className="text-gray-400 shrink-0" />
+                <span>{order.gift_recipient_email}</span>
+              </div>
+            )}
+            {order.gift_recipient_phone && (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Phone size={13} className="text-gray-400 shrink-0" />
+                <span>{order.gift_recipient_phone}</span>
+              </div>
+            )}
+            {order.gift_message && (
+              <div className="mt-3 bg-violet-50 border border-violet-100 rounded-xl p-3">
+                <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
+                  <MessageSquare size={11} /> Gift Message
+                </p>
+                <p className="text-sm text-gray-700 leading-relaxed italic">
+                  &ldquo;{order.gift_message}&rdquo;
+                </p>
+              </div>
+            )}
+            {order.woohoo_delivery_mode && order.woohoo_delivery_mode !== 'API' && (
+              <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                <Info size={11} /> Gift delivered via {order.woohoo_delivery_mode.toLowerCase()}
+              </p>
+            )}
+          </div>
+
+          {/* Resend success banner */}
+          {resendSuccess && (
+            <div className="mt-3 flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2.5">
+              <CheckCircle size={14} className="text-green-500 shrink-0" />
+              <p className="text-xs text-green-700 font-medium">{resendSuccess}</p>
+            </div>
+          )}
+
+          {/* Resend panel */}
+          {showResend && (
+            <div className="mt-4 pt-4 border-t border-violet-200 space-y-3">
+              <p className="text-xs font-semibold text-gray-600">
+                Resend card details — leave fields blank to use the original contact info.
+              </p>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Name (optional)</label>
+                <input
+                  type="text" value={resendName} onChange={e => setResendName(e.target.value)}
+                  placeholder={order.gift_recipient_name || 'Recipient name'}
+                  className="w-full border-2 border-gray-200 focus:border-violet-400 rounded-xl px-3 py-2 text-sm outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Email (optional)</label>
+                <input
+                  type="email" value={resendEmail} onChange={e => setResendEmail(e.target.value)}
+                  placeholder={order.gift_recipient_email || 'recipient@example.com'}
+                  className="w-full border-2 border-gray-200 focus:border-violet-400 rounded-xl px-3 py-2 text-sm outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Phone (optional)</label>
+                <input
+                  type="tel" value={resendPhone} onChange={e => setResendPhone(e.target.value)}
+                  placeholder={order.gift_recipient_phone || '+91 98765 43210'}
+                  className="w-full border-2 border-gray-200 focus:border-violet-400 rounded-xl px-3 py-2 text-sm outline-none transition-all"
+                />
+              </div>
+
+              {resendError && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <AlertCircle size={12} /> {resendError}
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold rounded-xl py-2 transition-colors disabled:opacity-50"
+                >
+                  {resending
+                    ? <><Loader2 size={12} className="animate-spin" /> Sending…</>
+                    : <><Send size={12} /> Resend Now</>}
+                </button>
+                <button
+                  onClick={() => { setShowResend(false); setResendError('') }}
+                  className="px-4 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Delivery status */}
       <div className="card p-5 mb-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Delivery Status</h3>
@@ -412,14 +572,19 @@ export default function OrderDetailPage() {
       </div>
 
       {/* EMAIL/SMS delivery notice — card details not returned for these modes */}
-      {deliveryMode && deliveryMode !== 'API' && (
-        <div className="card p-5 mb-4 flex items-start gap-3">
+      {((deliveryMode && deliveryMode !== 'API') || (order.order_mode === 'GIFT' && order.woohoo_delivery_mode && order.woohoo_delivery_mode !== 'API')) && (
+        <div className="card p-5 mb-4 flex items-start gap-3 border-l-4 border-blue-300">
           <Info size={18} className="text-blue-400 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-semibold text-gray-700 text-sm">Card delivered via {deliveryMode}</p>
+            <p className="font-semibold text-gray-700 text-sm">
+              {order.order_mode === 'GIFT'
+                ? `Gift card sent to ${order.gift_recipient_email || order.gift_recipient_name || 'recipient'}`
+                : `Card delivered via ${deliveryMode || order.woohoo_delivery_mode}`}
+            </p>
             <p className="text-xs text-gray-500 mt-0.5">
-              Your gift card details have been sent directly to your email/phone by Woohoo.
-              Please check your inbox or messages.
+              {order.order_mode === 'GIFT'
+                ? `The gift card has been delivered to the recipient via ${order.woohoo_delivery_mode?.toLowerCase() ?? 'email/SMS'}. They'll receive it in their inbox or messages.`
+                : 'Your gift card details have been sent directly to your email/phone. Please check your inbox or messages.'}
             </p>
           </div>
         </div>
@@ -443,20 +608,32 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* Empty state — completed but no cards (email/SMS delivery, or still processing) */}
-      {order.status === 'completed' && cardArr.length === 0 && !deliveryMode && (
-        <div className="card p-6 text-center text-gray-500">
-          <Gift size={32} className="mx-auto mb-3 text-gray-300" />
-          <p className="text-sm font-medium text-gray-700">Card details are being processed.</p>
-          <p className="text-xs text-gray-400 mt-1">Click the button below to fetch them now.</p>
-          {cardsError && (
-            <p className="mt-2 text-xs text-red-500">{cardsError}</p>
-          )}
-          <button onClick={handleFetchCards} disabled={cardsFetching}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary-500 px-4 py-2 text-xs font-semibold text-white hover:bg-primary-600 disabled:opacity-50 transition-colors">
-            <RefreshCw size={12} className={cardsFetching ? 'animate-spin' : ''} /> Refresh Card Details
-          </button>
-        </div>
+      {/* Empty state — completed but no cards */}
+      {order.status === 'completed' && cardArr.length === 0 && (
+        order.order_mode === 'GIFT' && order.woohoo_delivery_mode && order.woohoo_delivery_mode !== 'API' ? (
+          // Gift delivered via email/SMS — no card data expected on this page
+          <div className="card p-6 text-center text-gray-500">
+            <Gift size={32} className="mx-auto mb-3 text-violet-300" />
+            <p className="text-sm font-medium text-gray-700">Gift delivered to recipient!</p>
+            <p className="text-xs text-gray-400 mt-1">
+              The gift card was sent directly to {order.gift_recipient_email || order.gift_recipient_name || 'the recipient'}.<br />
+              They'll receive it in their inbox or messages.
+            </p>
+          </div>
+        ) : !deliveryMode ? (
+          <div className="card p-6 text-center text-gray-500">
+            <Gift size={32} className="mx-auto mb-3 text-gray-300" />
+            <p className="text-sm font-medium text-gray-700">Card details are being processed.</p>
+            <p className="text-xs text-gray-400 mt-1">Click the button below to fetch them now.</p>
+            {cardsError && (
+              <p className="mt-2 text-xs text-red-500">{cardsError}</p>
+            )}
+            <button onClick={handleFetchCards} disabled={cardsFetching}
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-primary-500 px-4 py-2 text-xs font-semibold text-white hover:bg-primary-600 disabled:opacity-50 transition-colors">
+              <RefreshCw size={12} className={cardsFetching ? 'animate-spin' : ''} /> Refresh Card Details
+            </button>
+          </div>
+        ) : null
       )}
 
       {/* Loyalty points earned */}

@@ -44,7 +44,7 @@ class LoyaltyService
             'order_id'    => $order->id,
             'type'        => LoyaltyPoint::TYPE_CREDIT,
             'points'      => $points,
-            'description' => 'Earned on order #' . $order->id,
+            'description' => 'Earned on order PF-' . str_pad($order->id, 5, '0', STR_PAD_LEFT),
             'expires_at'  => $expiresAt,
         ]);
 
@@ -81,7 +81,7 @@ class LoyaltyService
             'order_id'    => $order->id,
             'type'        => LoyaltyPoint::TYPE_DEBIT,
             'points'      => $pointsToUse,
-            'description' => 'Redeemed on order #' . $order->id,
+            'description' => 'Redeemed on order PF-' . str_pad($order->id, 5, '0', STR_PAD_LEFT),
             'expires_at'  => null,
         ]);
 

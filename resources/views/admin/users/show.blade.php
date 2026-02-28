@@ -296,6 +296,28 @@
                                         @endif
                                     @endif
 
+                                    {{-- Gift recipient info --}}
+                                    @if($order->order_mode === 'GIFT')
+                                        <p class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-violet-500">🎁 Gift Order</p>
+                                        <div class="flex flex-wrap gap-4 rounded-xl border border-violet-200 bg-violet-50 px-5 py-4 text-sm shadow-sm">
+                                            <div><span class="text-zinc-400">Mode:</span> <span class="font-semibold text-violet-700">{{ $order->delivery_mode ?? 'EMAIL' }}</span></div>
+                                            @if($order->gift_recipient_name)
+                                                <div><span class="text-zinc-400">Recipient:</span> <span class="font-medium text-zinc-800">{{ $order->gift_recipient_name }}</span></div>
+                                            @endif
+                                            @if($order->gift_recipient_email)
+                                                <div><span class="text-zinc-400">Email:</span> <span class="font-medium text-zinc-800">{{ $order->gift_recipient_email }}</span></div>
+                                            @endif
+                                            @if($order->gift_recipient_phone)
+                                                <div><span class="text-zinc-400">Phone:</span> <span class="font-medium text-zinc-800">{{ $order->gift_recipient_phone }}</span></div>
+                                            @endif
+                                            @if($order->gift_message)
+                                                <div class="w-full"><span class="text-zinc-400">Message:</span>
+                                                    <span class="font-medium text-zinc-700 italic">"{{ $order->gift_message }}"</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @endif
+
                                     {{-- Woohoo info --}}
                                     @if($order->woohoo_order_id || $order->delivery_status)
                                         <p class="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-zinc-400">Woohoo / Delivery</p>

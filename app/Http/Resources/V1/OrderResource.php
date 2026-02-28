@@ -65,6 +65,14 @@ class OrderResource extends JsonResource
             'card_delivery'   => $cardDelivery,
             'total_cards'     => $totalCards,
 
+            // Gift / delivery metadata
+            'order_mode'            => $this->order_mode ?? 'SELF',
+            'woohoo_delivery_mode'  => $this->delivery_mode ?? 'API',
+            'gift_recipient_name'   => $this->gift_recipient_name,
+            'gift_recipient_email'  => $this->gift_recipient_email,
+            'gift_recipient_phone'  => $this->gift_recipient_phone,
+            'gift_message'          => $this->gift_message,
+
             'created_at'      => $this->created_at?->toIso8601String(),
         ];
     }

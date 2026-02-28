@@ -27,6 +27,9 @@ class WoohooOrderPayloadBuilder
             throw new InvalidArgumentException('Order has no items.');
         }
 
+        $isGift       = ($order->order_mode ?? 'SELF') === 'GIFT';
+        $deliveryMode = $order->delivery_mode ?? 'API';
+
         $products = [];
         $totalAmount = 0.0;
         foreach ($items as $item) {
@@ -39,12 +42,20 @@ class WoohooOrderPayloadBuilder
             $lineTotal = round($unitPrice * $qty, 2);
             $totalAmount += $lineTotal;
             $currencyNumeric = $this->getCurrencyNumericCode($product->currency_code ?? 'INR');
-            $products[] = [
-                'sku' => (string) $product->external_id,
-                'price' => $unitPrice,
-                'qty' => $qty,
+
+            $productEntry = [
+                'sku'      => (string) $product->external_id,
+                'price'    => $unitPrice,
+                'qty'      => $qty,
                 'currency' => $currencyNumeric,
             ];
+
+            // Gift message per product
+            if ($isGift && ! empty($order->gift_message)) {
+                $productEntry['giftMessage'] = mb_substr($order->gift_message, 0, 250);
+            }
+
+            $products[] = $productEntry;
         }
         $totalAmount = round($totalAmount, 2);
 
@@ -53,28 +64,59 @@ class WoohooOrderPayloadBuilder
             throw new InvalidArgumentException('Billing email is mandatory.');
         }
 
-        $addressPayload = $this->buildAddressPayload($address, $billing);
+        // For GIFT orders the `address` is the recipient's details;
+        // for SELF orders it mirrors billing.
+        if ($isGift) {
+            $addressPayload = $this->buildGiftAddressPayload($order, $billing);
+        } else {
+            $addressPayload = $this->buildAddressPayload($address, $billing);
+        }
         $billingPayload = $this->buildBillingPayload($billing, $address);
 
         $poNumber = (string) ($order->id ?? $refno);
 
         $payload = [
-            'refno' => $refno,
-            'deliveryMode' => 'API',
-            'syncOnly' => $syncOnly,
-            'products' => $products,
-            'payments' => [
+            'refno'        => $refno,
+            'deliveryMode' => $deliveryMode,
+            'orderMode'    => $isGift ? 'GIFT' : 'SELF',
+            'syncOnly'     => $syncOnly,
+            'products'     => $products,
+            'payments'     => [
                 [
-                    'code' => 'svc',
-                    'amount' => $totalAmount,
+                    'code'     => 'svc',
+                    'amount'   => $totalAmount,
                     'poNumber' => $poNumber,
-                    'mode' => 'ANY',
+                    'mode'     => 'ANY',
                 ],
             ],
             'billing' => $billingPayload,
             'address' => $addressPayload,
         ];
 
+        return $payload;
+    }
+
+    /**
+     * Build address block from the gift recipient stored on the order.
+     */
+    protected function buildGiftAddressPayload(Order $order, array $billing): array
+    {
+        $name  = $order->gift_recipient_name  ?? ($billing['name'] ?? 'Recipient');
+        $email = $order->gift_recipient_email ?? ($billing['email'] ?? '');
+        $phone = $this->toE164($order->gift_recipient_phone ?? ($billing['telephone'] ?? ''));
+
+        $payload = [
+            'country'   => $billing['country'] ?? 'IN',
+            'email'     => $email,
+            'firstname' => $name,
+            'line1'     => 'N/A',
+            'city'      => 'N/A',
+            'region'    => 'N/A',
+            'postcode'  => '000000',
+        ];
+        if ($phone !== '') {
+            $payload['telephone'] = $phone;
+        }
         return $payload;
     }
 

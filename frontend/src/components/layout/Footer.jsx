@@ -11,9 +11,10 @@ const SHOP_LINKS = [
 ]
 
 const ACCOUNT_LINKS = [
-  ['Login',     '/login'],
-  ['Sign Up',   '/register'],
-  ['My Orders', '/orders'],
+  ['Login',          '/login'],
+  ['Sign Up',        '/register'],
+  ['My Orders',      '/orders'],
+  ['Check Balance',  '/check-balance'],
 ]
 
 const COMPANY_LINKS = [
@@ -118,9 +119,10 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
           <span className="text-slate-600">© {new Date().getFullYear()} SmartPayflex Payments Pvt. Ltd. All rights reserved.</span>
           <div className="flex items-center gap-4 text-slate-600">
-            <Link to="/privacy-policy" className="hover:text-slate-300 transition-colors">Privacy</Link>
-            <Link to="/terms"          className="hover:text-slate-300 transition-colors">Terms</Link>
-            <Link to="/loyalty"        className="hover:text-slate-300 transition-colors">Loyalty</Link>
+            <Link to="/privacy-policy"  className="hover:text-slate-300 transition-colors">Privacy</Link>
+            <Link to="/terms"           className="hover:text-slate-300 transition-colors">Terms</Link>
+            <Link to="/loyalty"         className="hover:text-slate-300 transition-colors">Loyalty</Link>
+            <Link to="/check-balance"   className="hover:text-slate-300 transition-colors">Check Balance</Link>
           </div>
         </div>
       </div>

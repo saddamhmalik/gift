@@ -57,8 +57,18 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await meApi()
+      const u = res.data
+      localStorage.setItem('auth_user', JSON.stringify(u))
+      setUser(u)
+      return u
+    } catch { /* ignore */ }
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout: logoutUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout: logoutUser, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

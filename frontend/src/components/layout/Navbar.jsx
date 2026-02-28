@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Zap, Search, User, LogOut, ChevronDown, Menu, X, ShoppingBag, Tag, Star } from 'lucide-react'
+import { Zap, Search, User, LogOut, ChevronDown, Menu, X, ShoppingBag, Tag, Star, CreditCard } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../contexts/AuthContext'
 import { getTags } from '../../api/tags'
@@ -8,6 +8,7 @@ import { getLoyaltyBalance } from '../../api/loyalty'
 
 
 const NAV_LINKS = [
+  { to: '/',            label: 'Home'       },
   { to: '/categories',  label: 'Categories' },
   { to: '/hot-deals',   label: '🔥 Deals'   },
   { to: '/trending',    label: 'Trending'   },
@@ -210,6 +211,10 @@ export default function Navbar() {
                           className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-colors">
                           <User size={14} /> My Account
                         </Link>
+                        <Link to="/profile" onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-colors">
+                          <User size={14} /> My Profile
+                        </Link>
                         <Link to="/orders" onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-colors">
                           <ShoppingBag size={14} /> My Orders
@@ -217,6 +222,10 @@ export default function Navbar() {
                         <Link to="/my-points" onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2 text-sm text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors">
                           <Star size={14} /> My Points {pointBalance > 0 && <span className="ml-auto text-xs bg-amber-500/20 px-1.5 py-0.5 rounded-full">{pointBalance.toFixed(0)}</span>}
+                        </Link>
+                        <Link to="/check-balance" onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/8 transition-colors">
+                          <CreditCard size={14} /> Check Balance
                         </Link>
                         <div className="my-1 border-t border-white/8" />
                         <button onClick={handleLogout}
@@ -283,18 +292,23 @@ export default function Navbar() {
           </div>
 
           {!user && (
-            <div className="flex gap-2 pt-3 border-t border-white/8 mt-3">
-              <Link to="/login" className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold text-slate-300 border border-white/15 hover:bg-white/8 transition-colors">Login</Link>
-              <Link to="/register" className="flex-1 text-center py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-primary-600 to-primary-500 text-white">Sign Up</Link>
+            <div className="pt-3 border-t border-white/8 mt-3 space-y-2">
+              <Link to="/check-balance" className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/8 transition-colors"><CreditCard size={14} /> Check Card Balance</Link>
+              <div className="flex gap-2">
+                <Link to="/login" className="flex-1 text-center py-2.5 rounded-xl text-sm font-semibold text-slate-300 border border-white/15 hover:bg-white/8 transition-colors">Login</Link>
+                <Link to="/register" className="flex-1 text-center py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-primary-600 to-primary-500 text-white">Sign Up</Link>
+              </div>
             </div>
           )}
           {user && (
             <div className="pt-3 border-t border-white/8 mt-3 space-y-1">
-              <Link to="/orders"    className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/8 transition-colors"><ShoppingBag size={14} /> My Orders</Link>
-              <Link to="/my-points" className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors">
+              <Link to="/profile"       className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/8 transition-colors"><User size={14} /> My Profile</Link>
+              <Link to="/orders"        className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/8 transition-colors"><ShoppingBag size={14} /> My Orders</Link>
+              <Link to="/my-points"     className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 transition-colors">
                 <Star size={14} /> My Points
                 {pointBalance > 0 && <span className="ml-auto text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">{pointBalance.toFixed(0)}</span>}
               </Link>
+              <Link to="/check-balance" className="flex items-center gap-2 py-2.5 px-3 rounded-xl text-sm text-slate-400 hover:text-white hover:bg-white/8 transition-colors"><CreditCard size={14} /> Check Balance</Link>
               <button onClick={handleLogout} className="flex items-center gap-2 w-full py-2.5 px-3 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-colors"><LogOut size={14} /> Sign Out</button>
             </div>
           )}

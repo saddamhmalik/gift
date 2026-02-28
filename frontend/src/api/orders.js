@@ -6,6 +6,8 @@ export const getOrderById   = (id)              => api.get(`/order/${id}`).then(
 export const fetchOrderCards = (id)             => api.get(`/order/${id}/cards`).then(r => r.data)
 export const getOrders      = (page = 1)        => api.get('/orders', { params: { page } }).then(r => r.data)
 
-export const setOrderItem   = (data)            => api.post('/order/item', data).then(r => r.data)
+export const setOrderItem    = (data)           => api.post('/order/item', data).then(r => r.data)
 export const updateOrderItem = (data)           => api.put('/order/item', data).then(r => r.data)
-export const clearOrderItem = ()                => api.delete('/order/item').then(r => r.data)
+export const clearOrderItem  = ()               => api.delete('/order/item').then(r => r.data)
+
+export const resendOrderCards = (id, data = {}) => api.post(`/order/${id}/resend`, data).then(r => r.data)

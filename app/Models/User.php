@@ -30,6 +30,11 @@ class User extends Authenticatable
         'avatar',
         'otp',
         'otp_expires_at',
+        'phone_verified_at',
+        'pending_email',
+        'email_change_token',
+        'email_change_expires_at',
+        'pending_phone',
     ];
 
     /**
@@ -72,12 +77,19 @@ class User extends Authenticatable
         return max(0, $earned - $spent);
     }
 
+    public function getFullNameAttribute(): string
+    {
+        return trim(($this->first_name ?? '') . ' ' . ($this->last_name ?? '')) ?: ($this->name ?? 'User');
+    }
+
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
-            'otp_expires_at' => 'datetime',
-            'password' => 'hashed',
+            'email_verified_at'       => 'datetime',
+            'otp_expires_at'          => 'datetime',
+            'phone_verified_at'       => 'datetime',
+            'email_change_expires_at' => 'datetime',
+            'password'                => 'hashed',
         ];
     }
 }

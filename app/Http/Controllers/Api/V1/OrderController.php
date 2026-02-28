@@ -8,6 +8,7 @@ use App\Repositories\OrderRepository;
 use App\Services\Order\OrderService;
 use App\Services\Woohoo\WoohooActivatedCardsService;
 use App\Services\Woohoo\WoohooOrderService;
+use App\Services\Woohoo\WoohooResendService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -20,6 +21,7 @@ class OrderController extends Controller
         protected OrderRepository $orderRepository,
         protected WoohooActivatedCardsService $activatedCardsService,
         protected WoohooOrderService $woohooOrderService,
+        protected WoohooResendService $resendService,
     ) {}
 
     /**
@@ -84,11 +86,18 @@ class OrderController extends Controller
     public function setItem(Request $request): JsonResponse
     {
         $request->validate([
-            'product_id' => 'required|integer|exists:products,id',
-            'quantity' => 'nullable|integer|min:1|max:99',
-            'unit_price' => 'nullable|numeric|min:0',
-            'selected_denomination' => 'nullable|string|max:100',
-            'order_token' => 'nullable|string',
+            'product_id'             => 'required|integer|exists:products,id',
+            'quantity'               => 'nullable|integer|min:1|max:99',
+            'unit_price'             => 'nullable|numeric|min:0',
+            'selected_denomination'  => 'nullable|string|max:100',
+            'order_token'            => 'nullable|string',
+            // Gift fields
+            'order_mode'             => 'nullable|string|in:SELF,GIFT',
+            'delivery_mode'          => 'nullable|string|in:API,EMAIL,SMS,ANY',
+            'gift_recipient_name'    => 'nullable|string|max:100',
+            'gift_recipient_email'   => 'nullable|email|max:191',
+            'gift_recipient_phone'   => 'nullable|string|max:20',
+            'gift_message'           => 'nullable|string|max:500',
         ]);
 
         $orderToken = $request->input('order_token') ?? $request->header('X-Order-Token');
@@ -99,13 +108,31 @@ class OrderController extends Controller
             return $this->error('Order not found. Create an order first with POST /order', 404);
         }
 
+        // Collect gift-related fields
+        $giftFields = [];
+        $orderMode = $request->input('order_mode', 'SELF');
+        if ($orderMode === 'GIFT') {
+            if (empty($request->input('gift_recipient_email')) && empty($request->input('gift_recipient_phone'))) {
+                return $this->error('Gift orders require at least a recipient email or phone.', 422);
+            }
+        }
+        $giftFields = [
+            'order_mode'           => $orderMode,
+            'delivery_mode'        => $orderMode === 'GIFT' ? ($request->input('delivery_mode', 'EMAIL')) : 'API',
+            'gift_recipient_name'  => $request->input('gift_recipient_name'),
+            'gift_recipient_email' => $request->input('gift_recipient_email'),
+            'gift_recipient_phone' => $request->input('gift_recipient_phone'),
+            'gift_message'         => $request->input('gift_message'),
+        ];
+
         try {
             $order = $this->orderService->setOrderProduct(
                 $order,
                 (int) $request->product_id,
                 (int) ($request->quantity ?? 1),
                 $request->has('unit_price') ? (float) $request->unit_price : null,
-                $request->input('selected_denomination')
+                $request->input('selected_denomination'),
+                $giftFields
             );
         } catch (InvalidArgumentException $e) {
             return $this->error($e->getMessage(), 422);
@@ -210,6 +237,49 @@ class OrderController extends Controller
             'delivery_mode' => $deliveryMode,
             'card_delivery' => $delivery,
         ]);
+    }
+
+    /**
+     * POST /api/v1/order/{order}/resend
+     *
+     * Resend card details via Woohoo's Resend API.
+     * Only applicable for EMAIL / SMS / ANY delivery orders.
+     * Optionally accepts updated recipient contact information.
+     */
+    public function resend(Request $request, int $order): JsonResponse
+    {
+        $request->validate([
+            'name'      => 'nullable|string|max:100',
+            'email'     => 'nullable|email|max:191',
+            'telephone' => 'nullable|string|max:20',
+        ]);
+
+        $orderModel = $this->orderRepository->findByIdAndUser($order, $request->user());
+        if (! $orderModel) {
+            return $this->error('Order not found', 404);
+        }
+
+        $deliveryMode = $orderModel->delivery_mode ?? 'API';
+        if ($deliveryMode === 'API') {
+            return $this->error('Resend is only available for EMAIL, SMS, or ANY delivery orders.', 422);
+        }
+
+        try {
+            $result = $this->resendService->resend(
+                $orderModel,
+                array_filter($request->only(['name', 'email', 'telephone']), fn ($v) => $v !== null)
+            );
+
+            if ($result['success']) {
+                return $this->success([], $result['message'] ?? 'Card details resent successfully.');
+            }
+
+            return $this->error($result['error'] ?? 'Failed to resend card details.', $result['status'] ?? 500);
+        } catch (\InvalidArgumentException $e) {
+            return $this->error($e->getMessage(), 422);
+        } catch (\Throwable $e) {
+            return $this->error('Failed to resend: ' . $e->getMessage(), 500);
+        }
     }
 
     /**
