@@ -95,4 +95,14 @@ class ProductRepository implements RepositoryInterface
             ->limit($limit)
             ->get();
     }
+
+    public function getByTag(string $tagSlug, int $perPage = 12): LengthAwarePaginator
+    {
+        return $this->model
+            ->active()
+            ->whereHas('tags', fn ($q) => $q->where('slug', $tagSlug)->where('is_active', true))
+            ->with(['category', 'tags'])
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+    }
 }

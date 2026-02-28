@@ -4,6 +4,7 @@ import HeroSection       from '../components/sections/HeroSection'
 import CategoriesSection from '../components/sections/CategoriesSection'
 import ProductSection    from '../components/sections/ProductSection'
 import PromoSection      from '../components/sections/PromoSection'
+import TagsSection       from '../components/sections/TagsSection'
 import { getHotDeals, getTrending, getBestSellers, getFeatured, getNewArrivals } from '../api/products'
 
 function useProductQuery(key, fn) {
@@ -29,9 +30,10 @@ export default function HomePage() {
     <>
       <HeroSection />
 
-      {/* Categories + Promos on the same white page */}
+      {/* Categories + Tags + Promos */}
       <div className="bg-white">
         <CategoriesSection />
+        <TagsSection />
         <PromoSection />
       </div>
 

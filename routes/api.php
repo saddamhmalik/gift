@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PayUController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\WebhookPaymentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +20,8 @@ Route::prefix('v1')->group(function () {
     // Public APIs (no auth required)
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{slug}', [CategoryController::class, 'show']);
+    Route::get('/tags', [TagController::class, 'index']);
+    Route::get('/tags/{slug}', [TagController::class, 'show']);
     Route::get('/products/hot-deals', [ProductController::class, 'hotDeals']);
     Route::get('/products/trending', [ProductController::class, 'trending']);
     Route::get('/products/best-sellers', [ProductController::class, 'bestSellers']);

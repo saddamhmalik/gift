@@ -3,7 +3,9 @@
 namespace App\Services\Catalog;
 
 use App\Models\Product;
+use App\Models\Tag;
 use App\Repositories\ProductRepository;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -60,6 +62,11 @@ class ProductService
         $product->refresh();
 
         return $product;
+    }
+
+    public function getByTag(string $tagSlug, int $perPage = 12): LengthAwarePaginator
+    {
+        return $this->repository->getByTag($tagSlug, $perPage);
     }
 
     public static function clearProductListCache(): void

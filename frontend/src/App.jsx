@@ -17,6 +17,8 @@ import AboutPage          from './pages/AboutPage'
 import PrivacyPolicyPage  from './pages/PrivacyPolicyPage'
 import TermsPage          from './pages/TermsPage'
 import LoyaltyPage        from './pages/LoyaltyPage'
+import TagsPage           from './pages/TagsPage'
+import TagPage            from './pages/TagPage'
 import NotFoundPage       from './pages/NotFoundPage'
 
 const queryClient = new QueryClient({
@@ -55,6 +57,10 @@ export default function App() {
 
               {/* Payment result */}
               <Route path="/payment/failure"      element={<Layout><PaymentFailurePage /></Layout>} />
+
+              {/* Tags */}
+              <Route path="/tags"                 element={<Layout><TagsPage /></Layout>} />
+              <Route path="/tags/:slug"           element={<Layout><TagPage /></Layout>} />
 
               {/* Company pages */}
               <Route path="/about"                element={<Layout><AboutPage /></Layout>} />

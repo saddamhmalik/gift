@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Zap, Search, User, LogOut, ChevronDown, Menu, X, ShoppingBag } from 'lucide-react'
+import { Zap, Search, User, LogOut, ChevronDown, Menu, X, ShoppingBag, Tag } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../contexts/AuthContext'
+import { getTags } from '../../api/tags'
+
 
 const NAV_LINKS = [
   { to: '/categories',  label: 'Categories' },
@@ -14,11 +17,16 @@ export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate  = useNavigate()
   const location  = useLocation()
-  const [scrolled,     setScrolled]     = useState(false)
-  const [menuOpen,     setMenuOpen]     = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [searchVal,    setSearchVal]    = useState('')
-  const [searchOpen,   setSearchOpen]   = useState(false)
+  const [scrolled,      setScrolled]      = useState(false)
+  const [menuOpen,      setMenuOpen]      = useState(false)
+  const [userMenuOpen,  setUserMenuOpen]  = useState(false)
+  const [tagsOpen,      setTagsOpen]      = useState(false)
+  const [searchVal,     setSearchVal]     = useState('')
+  const [searchOpen,    setSearchOpen]    = useState(false)
+  const tagsRef = useRef(null)
+
+  const { data: tagsData } = useQuery({ queryKey: ['tags'], queryFn: getTags, staleTime: 300_000 })
+  const tags = tagsData?.data ?? []
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -26,7 +34,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => { setMenuOpen(false); setSearchOpen(false) }, [location.pathname])
+  useEffect(() => { setMenuOpen(false); setSearchOpen(false); setTagsOpen(false) }, [location.pathname])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -71,6 +79,50 @@ export default function Navbar() {
                 {label}
               </Link>
             ))}
+
+            {/* Tags dropdown */}
+            <div className="relative" ref={tagsRef}>
+              <button
+                onClick={() => setTagsOpen(v => !v)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium transition-all duration-150 ${
+                  tagsOpen ? 'text-white bg-white/10' : 'text-slate-400 hover:text-white hover:bg-white/8'
+                }`}
+              >
+                <Tag size={13} />
+                Shop by Tags
+                <ChevronDown size={12} className={`transition-transform ${tagsOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {tagsOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setTagsOpen(false)} />
+                  <div className="absolute top-full left-0 mt-2 w-72 bg-slate-950 border border-white/10 rounded-2xl shadow-2xl shadow-black/50 z-50 overflow-hidden">
+                    <div className="px-4 pt-3 pb-2 border-b border-white/8">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Shop by Tags</p>
+                    </div>
+                    <div className="p-3 flex flex-wrap gap-2 max-h-72 overflow-y-auto">
+                      {tags.length === 0 && (
+                        <p className="text-xs text-slate-500 px-1 py-2">No tags available.</p>
+                      )}
+                      {tags.map(tag => (
+                        <Link
+                          key={tag.id}
+                          to={`/tags/${tag.slug}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-primary-500/15 border border-primary-400/30 text-primary-300 hover:bg-primary-500/25 hover:text-white transition-all duration-150"
+                        >
+                          {tag.name}
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="px-4 py-2.5 border-t border-white/8">
+                      <Link to="/tags" className="text-xs font-bold text-primary-400 hover:text-primary-300 transition-colors flex items-center gap-1">
+                        View all tags →
+                      </Link>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </nav>
 
           {/* ── Right cluster ── */}
@@ -184,6 +236,18 @@ export default function Navbar() {
               {label}
             </Link>
           ))}
+          {/* Mobile tags */}
+          <div className="pt-1">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 mb-2">Shop by Tags</p>
+            <div className="flex flex-wrap gap-2 px-1">
+              {tags.slice(0, 10).map(tag => (
+                <Link key={tag.id} to={`/tags/${tag.slug}`}
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-primary-500/15 border border-primary-400/30 text-primary-300 hover:bg-primary-500/25 transition-colors">
+                  {tag.name}
+                </Link>
+              ))}
+            </div>
+          </div>
 
           {!user && (
             <div className="flex gap-2 pt-3 border-t border-white/8 mt-3">
