@@ -63,7 +63,7 @@ export default function RegisterPage() {
             <p className="text-2xl font-extrabold text-white mb-1">
               Pay<span className="text-primary-400">Flex</span>
             </p>
-            <p className="text-sm text-white/80">Join PayFlex — earn rewards on every purchase</p>
+            <p className="text-sm text-white">Join PayFlex — earn rewards on every purchase</p>
           </div>
 
           {error && (
@@ -75,7 +75,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-white/85 mb-1.5">
+                <label className="block text-xs font-medium text-white mb-1.5">
                   First Name
                 </label>
                 <input
@@ -91,7 +91,7 @@ export default function RegisterPage() {
                 )}
               </div>
               <div>
-                <label className="block text-xs font-medium text-white/85 mb-1.5">Last Name</label>
+                <label className="block text-xs font-medium text-white mb-1.5">Last Name</label>
                 <input
                   type="text"
                   required
@@ -107,7 +107,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white/85 mb-1.5">
+              <label className="block text-xs font-medium text-white mb-1.5">
                 Email address
               </label>
               <input
@@ -124,8 +124,8 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white/85 mb-1.5">
-                Phone <span className="text-white/55">(E.g. +919999999999)</span>
+              <label className="block text-xs font-medium text-white mb-1.5">
+                Phone <span className="text-white">(E.g. +919999999999)</span>
               </label>
               <input
                 type="tel"
@@ -141,7 +141,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white/85 mb-1.5">Password</label>
+              <label className="block text-xs font-medium text-white mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
@@ -165,7 +165,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white/85 mb-1.5">
+              <label className="block text-xs font-medium text-white mb-1.5">
                 Confirm Password
               </label>
               <input
@@ -196,7 +196,7 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-white/75 mt-6">
+          <p className="text-center text-sm text-white mt-6">
             Already have an account?{' '}
             <Link to="/login" className="text-primary-400 font-semibold hover:text-primary-300">
               Sign in
@@ -205,7 +205,7 @@ export default function RegisterPage() {
         </div>
 
         <p className="text-center mt-5">
-          <Link to="/" className="text-xs text-white/60 hover:text-white/85 transition-colors">
+          <Link to="/" className="text-xs text-white hover:text-white transition-colors">
             ← Back to PayFlex
           </Link>
         </p>
