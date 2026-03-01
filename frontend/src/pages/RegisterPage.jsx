@@ -38,7 +38,7 @@ export default function RegisterPage() {
   const fieldErr = (k) => errors[k]?.[0]
 
   const inputClass = (k) =>
-    `w-full bg-white/8 border text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${
+    `w-full bg-slate-800/90 border text-white placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all [&:-webkit-autofill]:!bg-slate-800 [&:-webkit-autofill]:!text-white ${
       fieldErr(k)
         ? 'border-red-500/50 focus:border-red-500/60'
         : 'border-white/12 focus:border-primary-500/60'
@@ -53,7 +53,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md relative z-10">
         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl shadow-black/40">
           {/* Logo */}
-          <div className="text-center mb-7">
+          <div className="text-center mb-8">
             <Link
               to="/"
               className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-brand items-center justify-center shadow-glow-primary mb-4"
@@ -63,7 +63,7 @@ export default function RegisterPage() {
             <p className="text-2xl font-extrabold text-white mb-1">
               Pay<span className="text-primary-400">Flex</span>
             </p>
-            <p className="text-sm text-white">Join PayFlex — earn rewards on every purchase</p>
+            <p className="text-sm text-slate-400">Join PayFlex — earn rewards on every purchase</p>
           </div>
 
           {error && (
@@ -75,7 +75,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-white mb-1.5">
+                <label className="block text-sm font-medium text-white mb-1.5">
                   First Name
                 </label>
                 <input
@@ -91,7 +91,7 @@ export default function RegisterPage() {
                 )}
               </div>
               <div>
-                <label className="block text-xs font-medium text-white mb-1.5">Last Name</label>
+                <label className="block text-sm font-medium text-white mb-1.5">Last Name</label>
                 <input
                   type="text"
                   required
@@ -107,7 +107,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white mb-1.5">
+              <label className="block text-sm font-medium text-white mb-1.5">
                 Email address
               </label>
               <input
@@ -124,8 +124,8 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white mb-1.5">
-                Phone <span className="text-white">(E.g. +919999999999)</span>
+              <label className="block text-sm font-medium text-white mb-1.5">
+                Phone <span className="text-slate-400">(E.g. +919999999999)</span>
               </label>
               <input
                 type="tel"
@@ -141,7 +141,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white mb-1.5">Password</label>
+              <label className="block text-sm font-medium text-white mb-1.5">Password</label>
               <div className="relative">
                 <input
                   type={showPw ? 'text' : 'password'}
@@ -165,7 +165,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white mb-1.5">
+              <label className="block text-sm font-medium text-white mb-1.5">
                 Confirm Password
               </label>
               <input
@@ -174,7 +174,7 @@ export default function RegisterPage() {
                 value={form.password_confirmation}
                 onChange={set('password_confirmation')}
                 placeholder="Repeat password"
-                className="w-full bg-white/8 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-500 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all"
+                className="w-full bg-slate-800/90 border border-white/12 focus:border-primary-500/60 text-white placeholder-slate-400 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-500/20 transition-all [&:-webkit-autofill]:!bg-slate-800 [&:-webkit-autofill]:!text-white"
               />
             </div>
 
@@ -196,7 +196,7 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-white mt-6">
+          <p className="text-center text-sm text-slate-500 mt-6">
             Already have an account?{' '}
             <Link to="/login" className="text-primary-400 font-semibold hover:text-primary-300">
               Sign in
@@ -205,7 +205,7 @@ export default function RegisterPage() {
         </div>
 
         <p className="text-center mt-5">
-          <Link to="/" className="text-xs text-white hover:text-white transition-colors">
+          <Link to="/" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
             ← Back to PayFlex
           </Link>
         </p>
