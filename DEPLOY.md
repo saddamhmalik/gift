@@ -67,16 +67,22 @@ The frontend nginx proxies `/api` to the backend, so the app at port 80 works wi
 - **Storage and cache** are in Docker volumes and persist across restarts.
 - **MySQL** data is stored in the `mysql_data` volume and persists across restarts. Default credentials in `.env`: `DB_USERNAME=laravel`, `DB_PASSWORD=secret` (change in production). The backend runs `php artisan migrate --force` on startup.
 
-## Optional: Redis (Horizon / queue)
+## Redis (Horizon / queue)
 
-1. In `docker-compose.yml`, uncomment the `redis` service and volume.
-2. In `.env` set `QUEUE_CONNECTION=redis`.
-3. Run the queue worker (e.g. Horizon) in the backend container:
-   ```bash
-   docker compose exec backend php artisan horizon
-   ```
-   Or add a separate service that runs the same backend image with `CMD ["php", "artisan", "horizon"]`.
+The stack includes a `redis` service. Set `QUEUE_CONNECTION=redis` in `.env`. The backend entrypoint starts **Horizon** in the background; you can also run `docker compose exec backend php artisan horizon` manually if needed.
 
 ## Ports
 
 - Change host ports via `.env`: `FRONTEND_PORT=80`, `BACKEND_PORT=8000` (defaults shown in `docker-compose.yml`).
+
+## Docker troubleshooting
+
+1. **Image build: TLS handshake timeout to Docker Hub** — Network/VPN/DNS issue reaching `registry-1.docker.io`. Retry, change network, or `docker login`. Not an application bug.
+
+2. **Backend container exits or restarts** — Migrations must succeed. The entrypoint runs `php artisan migrate --force` and exits on failure. Check `docker compose logs backend` and MySQL (`docker compose logs mysql`). Ensure `DB_HOST=mysql`, `DB_PASSWORD` matches `MYSQL_PASSWORD`, and `DB_DATABASE` matches what MySQL created on first run.
+
+3. **`.env` for Compose** — Use `REDIS_HOST=redis` and `DB_HOST=mysql` when services run inside Docker (not `127.0.0.1`). The compose file also sets these if omitted.
+
+4. **`CACHE_STORE=database` / `SESSION_DRIVER=database`** — Require migrations (tables `cache`, `sessions`, etc.). If you change DB name or wipe MySQL volume, run `docker compose exec backend php artisan migrate --force`.
+
+5. **Horizon** — The backend entrypoint already starts Horizon in the background. Ensure `QUEUE_CONNECTION=redis` and Redis is healthy.
