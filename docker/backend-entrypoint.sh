@@ -11,6 +11,9 @@ if ! php artisan migrate --force; then
   exit 1
 fi
 
+# Default admin + settings rows (idempotent — seeders use updateOrCreate)
+php artisan db:seed --force || echo "gift-backend: warning: db:seed failed — run: php artisan db:seed" >&2
+
 # Clear stale Horizon workers
 php artisan horizon:terminate 2>/dev/null || true
 

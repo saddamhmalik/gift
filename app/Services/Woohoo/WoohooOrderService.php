@@ -3,10 +3,12 @@
 namespace App\Services\Woohoo;
 
 use App\Exceptions\Woohoo\WoohooOrderException;
-use App\Jobs\FetchActivatedCardsJob;
+use App\Jobs\PollWoohooOrderStatusJob;
+use App\Jobs\WoohooOrderPostTimeoutJob;
 use App\Models\Order;
 use App\Services\WoohooClient;
 use App\Services\Woohoo\WoohooActivatedCardsService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 
@@ -38,7 +40,25 @@ class WoohooOrderService
         $payload = $this->payloadBuilder->build($order, $refno, $billing, $address, $syncOnly);
 
         $path = config('woohoo.endpoints.orders', '/rest/v3/orders');
-        $response = $this->client->post($path, $payload);
+        try {
+            $response = $this->client->post($path, $payload);
+        } catch (ConnectionException $e) {
+            $order->update([
+                'woohoo_refno'    => $refno,
+                'woohoo_request'  => $payload,
+                'woohoo_response' => array_merge($order->woohoo_response ?? [], [
+                    'client_timeout' => true,
+                    'timeout_at'     => now()->toIso8601String(),
+                    'message'        => $e->getMessage(),
+                ]),
+                'delivery_status' => self::DELIVERY_STATUS_PENDING,
+                'status'          => Order::STATUS_PENDING,
+            ]);
+            $delaySec = (int) config('woohoo.order_timeout_status_delay_sec', 40);
+            WoohooOrderPostTimeoutJob::dispatch($order)->delay(now()->addSeconds($delaySec));
+            Log::error('Woohoo Order API client timeout', ['order_id' => $order->id, 'refno' => $refno]);
+            throw WoohooOrderException::clientTimeout($refno, $e);
+        }
 
         $status = $response->status();
         $body = $response->json() ?? [];
@@ -70,15 +90,11 @@ class WoohooOrderService
             if ($activated['success'] && ! empty($activated['cards'])) {
                 $this->storeCardDetailsEncrypted($order, $activated);
             } elseif ($activated['http_status'] === WoohooActivatedCardsService::STATUS_PROCESSING) {
-                // Cards still activating – dispatch job to retry with back-off
-                FetchActivatedCardsJob::dispatch($order, 0)->delay(now()->addSeconds(5));
-                Log::info('Woohoo 201: cards still processing, FetchActivatedCardsJob dispatched', [
-                    'order_id' => $order->id,
-                ]);
+                PollWoohooOrderStatusJob::dispatchForCardSyncDelay($order);
+                Log::info('Woohoo 201: cards processing — Status API poll queued', ['order_id' => $order->id]);
             } else {
-                // Unexpected error – dispatch job to attempt once more
-                FetchActivatedCardsJob::dispatch($order, 0)->delay(now()->addSeconds(10));
-                Log::warning('Woohoo 201: Activated Cards API error, FetchActivatedCardsJob dispatched', [
+                PollWoohooOrderStatusJob::dispatchForCardSyncDelay($order);
+                Log::warning('Woohoo 201: Activated Cards error — Status API poll queued', [
                     'order_id'    => $order->id,
                     'http_status' => $activated['http_status'],
                 ]);

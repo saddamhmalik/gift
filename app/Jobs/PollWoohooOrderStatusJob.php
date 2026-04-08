@@ -9,27 +9,77 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
+/**
+ * QC (Vikash): Status API first — max 3 checks; first after 2 min (async 202), then +5 min, +10 min if PROCESSING.
+ * On COMPLETE → Activated Cards via WoohooOrderStatusService::applyOrderDetailsSnapshot.
+ */
 class PollWoohooOrderStatusJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /**
-     * The number of seconds the job can run before timing out.
-     * Poll job runs up to ~5 min (30 attempts × 10s interval).
-     */
-    public int $timeout = 360;
+    public int $timeout = 120;
 
     public function __construct(
         public Order $order,
-        public int $intervalSeconds = 10,
-        public int $maxAttempts = 30
+        public int $checkIndex = 0,
     ) {
         $this->onQueue('woohoo-order-poll');
     }
 
+    /** After Woohoo returns 202 — first Status check after configurable delay (default 120s). */
+    public static function dispatchAfterAsyncOrder(Order $order): void
+    {
+        $delaySec = (int) config('woohoo.status_poll.first_delay_sec', 120);
+        static::dispatch($order, 0)->delay(now()->addSeconds($delaySec));
+    }
+
+    /** When 201 but cards not ready — run Status API before more Activated Cards calls. */
+    public static function dispatchForCardSyncDelay(Order $order): void
+    {
+        static::dispatch($order, 0);
+    }
+
     public function handle(WoohooOrderStatusService $statusService): void
     {
-        $statusService->pollUntilComplete($this->order, $this->intervalSeconds, $this->maxAttempts);
+        $order = Order::find($this->order->id);
+        if (! $order || empty($order->woohoo_order_id)) {
+            Log::warning('PollWoohooOrderStatusJob: missing order or woohoo_order_id', [
+                'order_id' => $this->order->id,
+            ]);
+            return;
+        }
+
+        $maxChecks = max(1, (int) config('woohoo.status_poll.max_checks', 3));
+        $woohooOrderId = $order->woohoo_order_id;
+
+        Log::info('PollWoohooOrderStatusJob: Status API', [
+            'order_id'        => $order->id,
+            'woohoo_order_id' => $woohooOrderId,
+            'check'           => $this->checkIndex + 1,
+            'max_checks'      => $maxChecks,
+        ]);
+
+        $data = $statusService->getOrderDetails($woohooOrderId);
+        $outcome = $statusService->applyOrderDetailsSnapshot($order, $data);
+
+        if ($outcome !== 'processing') {
+            return;
+        }
+
+        if ($this->checkIndex >= $maxChecks - 1) {
+            Log::warning('PollWoohooOrderStatusJob: max Status API checks reached, still PROCESSING', [
+                'order_id' => $order->id,
+            ]);
+            return;
+        }
+
+        $delaySec = match ($this->checkIndex) {
+            0 => (int) config('woohoo.status_poll.second_delay_sec', 300),
+            default => (int) config('woohoo.status_poll.third_delay_sec', 600),
+        };
+
+        static::dispatch($order, $this->checkIndex + 1)->delay(now()->addSeconds($delaySec));
     }
 }

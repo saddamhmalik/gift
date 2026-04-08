@@ -5,6 +5,13 @@
 @section('content')
 <div class="space-y-6">
 
+    @if($groups->isEmpty())
+        <div class="rounded-2xl border border-amber-200/80 bg-amber-50/90 px-6 py-5 text-sm text-amber-950 shadow-sm">
+            <p class="font-semibold">No settings found</p>
+            <p class="mt-2 text-amber-900/90">The database has no settings rows yet. Seed them so this page can show loyalty and other options.</p>
+            <pre class="mt-4 overflow-x-auto rounded-lg bg-amber-950/5 px-4 py-3 font-mono text-xs text-amber-950">php artisan db:seed --class=SettingsSeeder</pre>
+        </div>
+    @else
     <form method="POST" action="{{ route('admin.settings.update') }}">
         @csrf
         @method('PUT')
@@ -109,6 +116,7 @@
             </button>
         </div>
     </form>
+    @endif
 
 </div>
 @endsection

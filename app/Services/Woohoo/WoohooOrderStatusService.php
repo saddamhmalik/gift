@@ -66,10 +66,66 @@ class WoohooOrderStatusService
     }
 
     /**
-     * Poll order status until terminal state or max attempts. Updates order with card details if returned.
+     * Apply one Order Details (Status) API response: update order; on COMPLETE, call Activated Cards API.
      *
-     * @param  int  $intervalSeconds
-     * @param  int  $maxAttempts
+     * @return string complete|canceled|processing|unavailable|unknown
+     */
+    public function applyOrderDetailsSnapshot(Order $order, array $data): string
+    {
+        $woohooOrderId = $order->woohoo_order_id;
+        if (empty($woohooOrderId)) {
+            return 'unknown';
+        }
+
+        $status = (string) ($data['status'] ?? $data['orderStatus'] ?? 'UNKNOWN');
+        $status = strtoupper($status);
+
+        if ($status === 'NOT_AVAILABLE' || isset($data['errorCode'])) {
+            $order->update([
+                'woohoo_response' => array_merge($order->woohoo_response ?? [], ['lastStatus' => $data]),
+                'delivery_status' => WoohooOrderService::DELIVERY_STATUS_FAILED,
+                'status' => Order::STATUS_CANCELLED,
+            ]);
+
+            return 'unavailable';
+        }
+
+        $deliveryStatus = $this->mapToDeliveryStatus($status);
+        $orderStatus = $this->mapToOrderStatus($status);
+
+        $order->update([
+            'woohoo_response' => array_merge($order->woohoo_response ?? [], ['lastStatus' => $data]),
+            'delivery_status' => $deliveryStatus,
+            'status' => $orderStatus,
+        ]);
+
+        if (in_array($status, self::TERMINAL_STATUSES, true)) {
+            if ($status === self::STATUS_COMPLETE || $status === 'COMPLETED') {
+                $activated = $this->activatedCardsService->fetchAndNormalize($woohooOrderId);
+
+                if ($activated['success'] && ! empty($activated['cards'])) {
+                    $this->woohooOrderService->storeCardDetailsEncrypted($order, $activated);
+                    Log::info('Woohoo: Status COMPLETE — card details stored', ['order_id' => $order->id]);
+                } else {
+                    FetchActivatedCardsJob::dispatch($order, 0)->delay(now()->addSeconds(5));
+                    Log::info('Woohoo COMPLETE: Activated Cards pending, FetchActivatedCardsJob dispatched', [
+                        'order_id'    => $order->id,
+                        'http_status' => $activated['http_status'] ?? null,
+                    ]);
+                }
+
+                return 'complete';
+            }
+
+            return 'canceled';
+        }
+
+        return 'processing';
+    }
+
+    /**
+     * Legacy tight-loop poll (e.g. tests). Prefer queued PollWoohooOrderStatusJob for production.
+     *
      * @return array{status: string, card_details_stored: bool, attempts: int}
      */
     public function pollUntilComplete(Order $order, int $intervalSeconds = 10, int $maxAttempts = 30): array
@@ -83,54 +139,20 @@ class WoohooOrderStatusService
         while ($attempts < $maxAttempts) {
             $attempts++;
             $data = $this->getOrderDetails($woohooOrderId);
-            $status = (string) ($data['status'] ?? $data['orderStatus'] ?? 'UNKNOWN');
-            $status = strtoupper($status);
+            $outcome = $this->applyOrderDetailsSnapshot($order, $data);
+            $order->refresh();
 
-            if ($status === 'NOT_AVAILABLE' || isset($data['errorCode'])) {
-                $order->update([
-                    'woohoo_response' => array_merge($order->woohoo_response ?? [], ['lastStatus' => $data]),
-                    'delivery_status' => WoohooOrderService::DELIVERY_STATUS_FAILED,
-                    'status' => Order::STATUS_CANCELLED,
-                ]);
+            if ($outcome === 'complete') {
                 return [
-                    'status' => $status,
-                    'card_details_stored' => false,
-                    'attempts' => $attempts,
+                    'status'              => 'COMPLETE',
+                    'card_details_stored' => ! empty($order->card_details_encrypted),
+                    'attempts'            => $attempts,
                 ];
             }
-
-            $deliveryStatus = $this->mapToDeliveryStatus($status);
-            $orderStatus = $this->mapToOrderStatus($status);
-
-            $order->update([
-                'woohoo_response' => array_merge($order->woohoo_response ?? [], ['lastStatus' => $data]),
-                'delivery_status' => $deliveryStatus,
-                'status' => $orderStatus,
-            ]);
-
-            if (in_array($status, self::TERMINAL_STATUSES, true)) {
-                $cardDetailsStored = false;
-
-                // Use the Activated Cards API for the canonical, richest card data
-                if ($status === self::STATUS_COMPLETE || $status === 'COMPLETED') {
-                    $activated = $this->activatedCardsService->fetchAndNormalize($woohooOrderId);
-
-                    if ($activated['success'] && ! empty($activated['cards'])) {
-                        $this->woohooOrderService->storeCardDetailsEncrypted($order, $activated);
-                        $cardDetailsStored = true;
-                    } else {
-                        // Cards not ready yet or API error — dispatch a retrying job
-                        FetchActivatedCardsJob::dispatch($order, 0)->delay(now()->addSeconds(5));
-                        Log::info('Woohoo COMPLETE: Activated Cards not ready, FetchActivatedCardsJob dispatched', [
-                            'order_id'    => $order->id,
-                            'http_status' => $activated['http_status'],
-                        ]);
-                    }
-                }
-
+            if ($outcome === 'canceled' || $outcome === 'unavailable') {
                 return [
-                    'status'              => $status,
-                    'card_details_stored' => $cardDetailsStored,
+                    'status'              => $outcome,
+                    'card_details_stored' => false,
                     'attempts'            => $attempts,
                 ];
             }

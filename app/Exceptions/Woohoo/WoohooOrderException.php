@@ -61,4 +61,14 @@ class WoohooOrderException extends Exception
         }
         return new self($message, $code ? (string) $code : null, $response);
     }
+
+    public static function clientTimeout(string $refno, ?\Throwable $previous = null): self
+    {
+        return new self(
+            "Woohoo order request timed out before a response (refno {$refno}). Reconcile with Order Status API if an order id is available.",
+            'CLIENT_TIMEOUT',
+            ['refno' => $refno],
+            $previous
+        );
+    }
 }

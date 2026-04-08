@@ -86,3 +86,7 @@ The stack includes a `redis` service. Set `QUEUE_CONNECTION=redis` in `.env`. Th
 4. **`CACHE_STORE=database` / `SESSION_DRIVER=database`** — Require migrations (tables `cache`, `sessions`, etc.). If you change DB name or wipe MySQL volume, run `docker compose exec backend php artisan migrate --force`.
 
 5. **Horizon** — The backend entrypoint already starts Horizon in the background. Ensure `QUEUE_CONNECTION=redis` and Redis is healthy.
+
+6. **`/admin/login` returns 500 or blank** — Admin Blade views use **Vite** (`@vite`). The Docker image runs **`npm run build`** in a Node stage and copies **`public/build`** into the final image. Rebuild the backend: `docker compose build backend --no-cache`. For **local** `php artisan serve` (no Docker), run **`npm run build`** once so `public/build` exists, or run **`npm run dev`** in another terminal.
+
+7. **Localhost vs server IP** — If you open `http://localhost:8000` but `.env` has `APP_URL=http://13.202.3.204:8000`, set `APP_URL=http://localhost:8000` for local testing so sessions and redirects behave correctly.

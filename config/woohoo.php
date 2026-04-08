@@ -28,4 +28,24 @@ return [
 
     'user_agent' => env('WOOHOO_USER_AGENT', 'GiftBox/1.0 (QwikGift API Client)'),
 
+    /** HTTP timeouts (seconds). Order POST default 10s per QC UAT guidance. */
+    'http_timeout' => [
+        'oauth' => (int) env('WOOHOO_OAUTH_TIMEOUT', 15),
+        'get'   => (int) env('WOOHOO_GET_TIMEOUT', 30),
+        'post'  => (int) env('WOOHOO_ORDER_POST_TIMEOUT', 10),
+    ],
+
+    /** After Order POST client timeout, delay before first Status API recovery attempt */
+    'order_timeout_status_delay_sec' => (int) env('WOOHOO_ORDER_TIMEOUT_STATUS_DELAY_SEC', 40),
+
+    /**
+     * Async orders: max GET /rest/v3/orders/{id} checks; delays after 1st check 5m, after 2nd 10m (exponential).
+     */
+    'status_poll' => [
+        'max_checks'       => (int) env('WOOHOO_STATUS_POLL_MAX_CHECKS', 3),
+        'first_delay_sec'  => (int) env('WOOHOO_STATUS_POLL_FIRST_DELAY_SEC', 120),
+        'second_delay_sec' => (int) env('WOOHOO_STATUS_POLL_SECOND_DELAY_SEC', 300),
+        'third_delay_sec'  => (int) env('WOOHOO_STATUS_POLL_THIRD_DELAY_SEC', 600),
+    ],
+
 ];

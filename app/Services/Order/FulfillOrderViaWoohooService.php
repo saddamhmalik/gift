@@ -36,7 +36,7 @@ class FulfillOrderViaWoohooService
         $result = $this->woohooOrderService->createOrder($order, $billing, $address, $syncOnly);
         $pollDispatched = false;
         if ($result['status'] === 202 && ! $result['sync']) {
-            PollWoohooOrderStatusJob::dispatch($order);
+            PollWoohooOrderStatusJob::dispatchAfterAsyncOrder($order);
             $pollDispatched = true;
         }
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin') – {{ config('app.name') }}</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('admin.partials.styles')
 </head>
 <body class="min-h-screen bg-zinc-50/80 antialiased">
     <div class="flex min-h-screen">

@@ -42,7 +42,7 @@ class WoohooClient
         $response = Http::acceptJson()
             ->contentType('application/json')
             ->withHeaders($this->getOAuthHeaders())
-            ->timeout(15)
+            ->timeout((int) config('woohoo.http_timeout.oauth', 15))
             ->post($url, [
                 'clientId' => $this->clientId,
                 'username' => $this->username,
@@ -80,6 +80,7 @@ class WoohooClient
         $response = Http::acceptJson()
             ->contentType('application/json')
             ->withHeaders($this->getOAuthHeaders())
+            ->timeout((int) config('woohoo.http_timeout.oauth', 15))
             ->post($url, [
                 'clientId' => $this->clientId,
                 'clientSecret' => $this->clientSecret,
@@ -105,6 +106,7 @@ class WoohooClient
         $response = Http::acceptJson()
             ->contentType('application/json')
             ->withHeaders($this->getOAuthHeaders())
+            ->timeout((int) config('woohoo.http_timeout.oauth', 15))
             ->post($url, [
                 'clientId' => $this->clientId,
                 'clientSecret' => $this->clientSecret,
@@ -186,13 +188,14 @@ class WoohooClient
         $baseString = 'GET&' . $encodedUrl;
         $signature  = hash_hmac('sha512', $baseString, $this->clientSecret);
 
-        $result = Http::withHeaders(array_merge($this->getOAuthHeaders(), [
-            'Authorization' => 'Bearer ' . $token,
-            'Content-Type'  => 'application/json',
-            'Accept'        => '*/*',
-            'dateAtClient'  => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
-            'signature'     => $signature,
-        ]))->get($requestUrl);
+        $result = Http::timeout((int) config('woohoo.http_timeout.get', 30))
+            ->withHeaders(array_merge($this->getOAuthHeaders(), [
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type'  => 'application/json',
+                'Accept'        => '*/*',
+                'dateAtClient'  => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
+                'signature'     => $signature,
+            ]))->get($requestUrl);
 
         return $result instanceof PromiseInterface ? $result->wait() : $result;
     }
@@ -219,13 +222,15 @@ class WoohooClient
         $baseString = 'POST&' . $encodedUrl . '&' . $encodedBody;
         $signature = hash_hmac('sha512', $baseString, $this->clientSecret);
 
-        $result = Http::withHeaders(array_merge($this->getOAuthHeaders(), [
-            'Authorization' => 'Bearer ' . $token,
-            'Content-Type' => 'application/json',
-            'Accept' => '*/*',
-            'dateAtClient' => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
-            'signature' => $signature,
-        ]))->withBody($bodyJson, 'application/json')->post($url);
+        $timeout = (int) config('woohoo.http_timeout.post', 10);
+        $result = Http::timeout($timeout)
+            ->withHeaders(array_merge($this->getOAuthHeaders(), [
+                'Authorization' => 'Bearer ' . $token,
+                'Content-Type' => 'application/json',
+                'Accept' => '*/*',
+                'dateAtClient' => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
+                'signature' => $signature,
+            ]))->withBody($bodyJson, 'application/json')->post($url);
 
         if (method_exists($result, 'wait')) {
             $result = $result->wait();
