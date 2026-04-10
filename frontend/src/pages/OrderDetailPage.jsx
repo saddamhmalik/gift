@@ -273,6 +273,8 @@ export default function OrderDetailPage() {
       // Keep polling while pending OR while refund is in-flight
       if (order?.status === 'pending') return 8000
       if (order?.refund_status === 'pending') return 5000
+      // Until delayed loyalty credit lands, refresh periodically
+      if (order?.loyalty_points_pending) return 60_000
       return false
     },
   })
@@ -835,7 +837,27 @@ export default function OrderDetailPage() {
           </div>
         ) : null)}
 
-      {/* Loyalty points earned */}
+      {/* Loyalty: scheduled credit (backend credits after configured delay) */}
+      {order.loyalty_points_pending && Number(order.loyalty_points_estimate) > 0 && (
+        <div className="card p-4 mb-4 flex items-start gap-3 border border-amber-200 bg-amber-50/90">
+          <Clock size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900">
+              ~{Number(order.loyalty_points_estimate).toLocaleString()} PayFlex Points
+            </p>
+            <p className="text-xs text-amber-800/90 mt-1 leading-relaxed">
+              These points will be credited to your account within{' '}
+              <span className="font-semibold">
+                {order.loyalty_credit_delay_hours ?? 24} hour
+                {(order.loyalty_credit_delay_hours ?? 24) === 1 ? '' : 's'}
+              </span>{' '}
+              of this successful order. Each order earns points once.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Loyalty points earned (after delayed credit job ran) */}
       {order.points_earned > 0 && (
         <div className="card p-4 mb-4 flex items-center gap-3">
           <span className="text-2xl">⭐</span>
@@ -844,7 +866,7 @@ export default function OrderDetailPage() {
               You earned {Number(order.points_earned).toLocaleString()} PayFlex Points!
             </p>
             <p className="text-xs text-gray-500 mt-0.5">
-              Points are valid for 30 days and will appear in your balance shortly.
+              Points are valid for 30 days and are included in your balance now.
             </p>
           </div>
         </div>

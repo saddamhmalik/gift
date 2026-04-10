@@ -12,59 +12,95 @@ use Illuminate\Support\Facades\Log;
 class LoyaltyService
 {
     /**
-     * Credit points to a user after a successful order.
-     * Points = amountPaid * product's loyalty_rate (fallback to global default).
-     * Only the real-money portion of the order earns points (not the points-paid portion).
+     * Estimated earn points for the cash portion (same rules as {@see creditForOrder}).
+     * Used for UI before the delayed credit job runs.
      */
-    public function creditForOrder(Order $order): LoyaltyPoint|null
+    public function estimateEarnedPointsForOrder(Order $order): float
     {
-        $user = $order->user;
-        if (! $user) {
-            return null;
-        }
+        $order->loadMissing(['items.product']);
 
-        // Amount that earned points = total_amount - points_used
         $amountPaid = max(0, (float) $order->total_amount - (float) $order->points_used);
         if ($amountPaid <= 0) {
-            return null;
+            return 0.0;
         }
 
-        // Determine rate from first product, fallback to global config
         $rate = $this->resolveRate($order);
-        $points = round($amountPaid * $rate, 2);
 
-        if ($points <= 0) {
-            return null;
-        }
+        return max(0.0, round($amountPaid * $rate, 2));
+    }
 
-        $expiresAt = now()->addDays((int) Setting::get('loyalty.validity_days', config('loyalty.validity_days', 30)));
+    /**
+     * Credit points for the cash portion of an order (not points-paid portion).
+     * Rate comes from the first line item's product or global default.
+     * In production this is invoked from {@see \App\Jobs\CreditLoyaltyForOrderJob} after the configured delay.
+     *
+     * Uses a row lock so concurrent workers cannot double-credit.
+     */
+    public function creditForOrder(Order $order): ?LoyaltyPoint
+    {
+        return DB::transaction(function () use ($order) {
+            $locked = Order::query()
+                ->whereKey($order->id)
+                ->lockForUpdate()
+                ->with(['user', 'items.product'])
+                ->first();
 
-        $lp = LoyaltyPoint::create([
-            'user_id'     => $user->id,
-            'order_id'    => $order->id,
-            'type'        => LoyaltyPoint::TYPE_CREDIT,
-            'points'      => $points,
-            'description' => 'Earned on order PF-' . str_pad($order->id, 5, '0', STR_PAD_LEFT),
-            'expires_at'  => $expiresAt,
-        ]);
+            if (! $locked?->user) {
+                return null;
+            }
 
-        $order->update(['points_earned' => $points]);
+            // Idempotent: do not double-credit (duplicate jobs / workers)
+            if ((float) $locked->points_earned > 0) {
+                return null;
+            }
+            if (LoyaltyPoint::query()
+                ->where('order_id', $locked->id)
+                ->where('type', LoyaltyPoint::TYPE_CREDIT)
+                ->exists()) {
+                return null;
+            }
 
-        Log::info('Loyalty: credited points', [
-            'user_id'  => $user->id,
-            'order_id' => $order->id,
-            'points'   => $points,
-            'expires'  => $expiresAt->toDateString(),
-        ]);
+            $amountPaid = max(0, (float) $locked->total_amount - (float) $locked->points_used);
+            if ($amountPaid <= 0) {
+                return null;
+            }
 
-        return $lp;
+            $rate = $this->resolveRate($locked);
+            $points = round($amountPaid * $rate, 2);
+
+            if ($points <= 0) {
+                return null;
+            }
+
+            $expiresAt = now()->addDays((int) Setting::get('loyalty.validity_days', config('loyalty.validity_days', 30)));
+
+            $lp = LoyaltyPoint::create([
+                'user_id' => $locked->user->id,
+                'order_id' => $locked->id,
+                'type' => LoyaltyPoint::TYPE_CREDIT,
+                'points' => $points,
+                'description' => 'Earned on order PF-'.str_pad((string) $locked->id, 5, '0', STR_PAD_LEFT),
+                'expires_at' => $expiresAt,
+            ]);
+
+            $locked->update(['points_earned' => $points]);
+
+            Log::info('Loyalty: credited points', [
+                'user_id' => $locked->user->id,
+                'order_id' => $locked->id,
+                'points' => $points,
+                'expires' => $expiresAt->toDateString(),
+            ]);
+
+            return $lp;
+        });
     }
 
     /**
      * Debit (redeem) points for a user when they apply points at checkout.
      * Must be called inside a DB transaction, after validating available balance.
      */
-    public function debitForOrder(Order $order, float $pointsToUse): LoyaltyPoint|null
+    public function debitForOrder(Order $order, float $pointsToUse): ?LoyaltyPoint
     {
         $user = $order->user;
         if (! $user || $pointsToUse <= 0) {
@@ -77,18 +113,18 @@ class LoyaltyService
         }
 
         $lp = LoyaltyPoint::create([
-            'user_id'     => $user->id,
-            'order_id'    => $order->id,
-            'type'        => LoyaltyPoint::TYPE_DEBIT,
-            'points'      => $pointsToUse,
-            'description' => 'Redeemed on order PF-' . str_pad($order->id, 5, '0', STR_PAD_LEFT),
-            'expires_at'  => null,
+            'user_id' => $user->id,
+            'order_id' => $order->id,
+            'type' => LoyaltyPoint::TYPE_DEBIT,
+            'points' => $pointsToUse,
+            'description' => 'Redeemed on order PF-'.str_pad($order->id, 5, '0', STR_PAD_LEFT),
+            'expires_at' => null,
         ]);
 
         Log::info('Loyalty: debited points', [
-            'user_id'  => $user->id,
+            'user_id' => $user->id,
             'order_id' => $order->id,
-            'points'   => $pointsToUse,
+            'points' => $pointsToUse,
         ]);
 
         return $lp;
@@ -119,6 +155,7 @@ class LoyaltyService
     public function estimatePoints(float $amount, ?float $rate = null): float
     {
         $r = $rate ?? (float) Setting::get('loyalty.default_rate', config('loyalty.default_rate', 0.01));
+
         return round($amount * $r, 2);
     }
 
@@ -128,7 +165,8 @@ class LoyaltyService
     protected function resolveRate(Order $order): float
     {
         $product = $order->items->first()?->product;
-        $rate    = $product?->loyalty_rate ?? Setting::get('loyalty.default_rate', config('loyalty.default_rate', 0.01));
+        $rate = $product?->loyalty_rate ?? Setting::get('loyalty.default_rate', config('loyalty.default_rate', 0.01));
+
         return (float) $rate;
     }
 }

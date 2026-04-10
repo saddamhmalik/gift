@@ -21,6 +21,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Earned points credit delay
+    |--------------------------------------------------------------------------
+    | Hours after a successful payment before earned points are credited.
+    | Redeemed points are still debited immediately when payment confirms.
+    */
+    'credit_delay_hours' => (int) env('LOYALTY_CREDIT_DELAY_HOURS', 24),
+
+    /*
+    |--------------------------------------------------------------------------
     | Minimum Redeemable Points
     |--------------------------------------------------------------------------
     | Minimum points a user must have to redeem any on a transaction.

@@ -18,7 +18,7 @@ class LoyaltyController extends Controller
      */
     public function balance(Request $request): JsonResponse
     {
-        $user    = $request->user();
+        $user = $request->user();
         $balance = $this->loyaltyService->balance($user);
 
         // Upcoming expirations (next 7 days)
@@ -39,14 +39,15 @@ class LoyaltyController extends Controller
             ->sum('points');
 
         return $this->success([
-            'balance'           => (float) $balance,
-            'expiring_soon'     => (float) $expiringSoon,
-            'lifetime_earned'   => $lifetimeEarned,
+            'balance' => (float) $balance,
+            'expiring_soon' => (float) $expiringSoon,
+            'lifetime_earned' => $lifetimeEarned,
             'lifetime_redeemed' => $lifetimeRedeemed,
-            'default_rate'         => (float) Setting::get('loyalty.default_rate',         config('loyalty.default_rate', 0.01)),
-            'validity_days'        => (int)   Setting::get('loyalty.validity_days',         config('loyalty.validity_days', 30)),
-            'max_redeem_per_order' => (float) Setting::get('loyalty.max_redeem_per_order',  config('loyalty.max_redeem_per_order', 500)),
-            'value_per_point'      => 1.0, // 1 point = ₹1
+            'default_rate' => (float) Setting::get('loyalty.default_rate', config('loyalty.default_rate', 0.01)),
+            'validity_days' => (int) Setting::get('loyalty.validity_days', config('loyalty.validity_days', 30)),
+            'max_redeem_per_order' => (float) Setting::get('loyalty.max_redeem_per_order', config('loyalty.max_redeem_per_order', 500)),
+            'value_per_point' => 1.0, // 1 point = ₹1
+            'credit_delay_hours' => (int) config('loyalty.credit_delay_hours', 24),
         ]);
     }
 
@@ -56,28 +57,28 @@ class LoyaltyController extends Controller
      */
     public function history(Request $request): JsonResponse
     {
-        $user    = $request->user();
+        $user = $request->user();
         $perPage = min((int) $request->get('per_page', 15), 50);
         $history = $this->loyaltyService->history($user, $perPage);
 
         $items = $history->getCollection()->map(fn ($lp) => [
-            'id'          => $lp->id,
-            'type'        => $lp->type,
-            'points'      => (float) $lp->points,
+            'id' => $lp->id,
+            'type' => $lp->type,
+            'points' => (float) $lp->points,
             'description' => $lp->description,
-            'expires_at'  => $lp->expires_at?->toDateString(),
-            'is_expired'  => $lp->is_expired,
-            'order_id'    => $lp->order_id,
-            'created_at'  => $lp->created_at->toDateTimeString(),
+            'expires_at' => $lp->expires_at?->toDateString(),
+            'is_expired' => $lp->is_expired,
+            'order_id' => $lp->order_id,
+            'created_at' => $lp->created_at->toDateTimeString(),
         ]);
 
         return $this->success([
             'data' => $items,
             'meta' => [
                 'current_page' => $history->currentPage(),
-                'last_page'    => $history->lastPage(),
-                'per_page'     => $history->perPage(),
-                'total'        => $history->total(),
+                'last_page' => $history->lastPage(),
+                'per_page' => $history->perPage(),
+                'total' => $history->total(),
             ],
         ]);
     }
@@ -90,13 +91,13 @@ class LoyaltyController extends Controller
     {
         $request->validate(['amount' => 'required|numeric|min:1']);
 
-        $amount   = (float) $request->amount;
-        $rate     = (float) Setting::get('loyalty.default_rate', config('loyalty.default_rate', 0.01));
-        $points   = $this->loyaltyService->estimatePoints($amount, $rate);
+        $amount = (float) $request->amount;
+        $rate = (float) Setting::get('loyalty.default_rate', config('loyalty.default_rate', 0.01));
+        $points = $this->loyaltyService->estimatePoints($amount, $rate);
 
         return $this->success([
-            'amount'         => $amount,
-            'rate'           => $rate,
+            'amount' => $amount,
+            'rate' => $rate,
             'points_to_earn' => $points,
         ]);
     }

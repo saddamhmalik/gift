@@ -64,15 +64,21 @@ function TncAccordion({ html }) {
 }
 
 /* ─── Loyalty Points Banner ─────────────────────────────────────────────────── */
-function LoyaltyEarnBadge({ points }) {
+function LoyaltyEarnBadge({ points, creditDelayHours = 24 }) {
   if (!points || points <= 0) return null
+  const h = creditDelayHours ?? 24
   return (
-    <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-      <Star size={14} className="text-amber-500" fill="currentColor" />
-      <span className="text-xs font-semibold text-amber-700">
-        Earn <span className="font-extrabold">{points.toFixed(0)} PayFlex Points</span> (worth ₹
-        {points.toFixed(0)}) on this purchase
-      </span>
+    <div className="flex flex-col gap-1 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+      <div className="flex items-center gap-2">
+        <Star size={14} className="text-amber-500 flex-shrink-0" fill="currentColor" />
+        <span className="text-xs font-semibold text-amber-700">
+          Earn <span className="font-extrabold">{points.toFixed(0)} PayFlex Points</span> (worth ₹
+          {points.toFixed(0)}) on this purchase
+        </span>
+      </div>
+      <p className="text-[10px] text-amber-700/85 leading-snug pl-0.5">
+        Credited within {h} hour{h === 1 ? '' : 's'} after a successful order (once per order).
+      </p>
     </div>
   )
 }
@@ -131,6 +137,7 @@ export default function ProductDetailPage() {
   const pointBalance = loyaltyInfo?.balance ?? 0
   const defaultRate = loyaltyInfo?.default_rate ?? 0.01
   const maxRedeemPerOrder = loyaltyInfo?.max_redeem_per_order ?? 500
+  const creditDelayHours = loyaltyInfo?.credit_delay_hours ?? 24
 
   if (isLoading)
     return (
@@ -282,10 +289,10 @@ export default function ProductDetailPage() {
             ))}
           </div>
 
-          {/* Points earn preview */}
-          {orderTotal > 0 && (
+          {/* Points earn preview (cash portion only; matches delayed credit rules) */}
+          {orderTotal > 0 && pointsToEarn > 0 && (
             <div className="mt-4">
-              <LoyaltyEarnBadge points={Math.round(orderTotal * earnRate)} />
+              <LoyaltyEarnBadge points={pointsToEarn} creditDelayHours={creditDelayHours} />
             </div>
           )}
         </div>
