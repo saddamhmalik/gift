@@ -24,31 +24,33 @@ class WoohooOrderStatusService
     ) {}
 
     /**
-     * Fetch order details from Woohoo Order Details API: GET /rest/v3/orders/{order_id}.
-     * Returns full response: orderId, refno, status, statusLabel, products, address, billing, payments, cards, etc.
+     * Order Status API by refno: GET /rest/v3/order/{refno}/status
+     * Primary method for polling — use after 202 async response or client timeout.
+     * Returns: { status, statusLabel, orderId, refno, cancel }
      *
-     * @return array{orderId?: string, refno?: string, status?: string, statusLabel?: string, products?: array, address?: array, billing?: array, payments?: array, cards?: array, ...}
+     * @return array{status?: string, statusLabel?: string, orderId?: string, refno?: string, ...}
      */
-    public function getOrderDetails(string $woohooOrderId): array
+    public function getOrderStatusByRefno(string $refno): array
     {
-        $basePath = rtrim(config('woohoo.endpoints.order_status', '/rest/v3/orders'), '/');
-        $path = $basePath . '/' . $woohooOrderId;
+        $base = rtrim(config('woohoo.endpoints.order_refno_status', '/rest/v3/order'), '/');
+        $path = $base . '/' . rawurlencode($refno) . '/status';
         $response = $this->client->get($path);
 
         if (! $response->successful()) {
-            $body = $response->json() ?? [];
-            $code = $body['code'] ?? null;
+            $body    = $response->json() ?? [];
+            $code    = $body['code'] ?? null;
             $message = $body['message'] ?? $response->body();
-            Log::warning('Woohoo Order Details API failed', [
-                'woohoo_order_id' => $woohooOrderId,
+            Log::warning('Woohoo Order Status API (refno) failed', [
+                'refno'       => $refno,
                 'http_status' => $response->status(),
-                'code' => $code,
-                'message' => $message,
+                'code'        => $code,
+                'message'     => $message,
             ]);
+
             return [
-                'status' => $code === self::ERROR_ORDER_NOT_AVAILABLE ? 'NOT_AVAILABLE' : 'UNKNOWN',
+                'status'    => $code === self::ERROR_ORDER_NOT_AVAILABLE ? 'NOT_AVAILABLE' : 'UNKNOWN',
                 'errorCode' => $code,
-                'message' => $message,
+                'message'   => is_string($message) ? $message : null,
             ];
         }
 
@@ -56,9 +58,56 @@ class WoohooOrderStatusService
     }
 
     /**
-     * Alias for getOrderDetails for backwards compatibility.
+     * Fetch order details from Woohoo Order Details API: GET /rest/v3/orders/{orderId}.
+     * Use as fallback when only woohoo_order_id is available (no refno stored).
      *
-     * @return array{status?: string, orderId?: string, ...}
+     * @return array{orderId?: string, refno?: string, status?: string, statusLabel?: string, ...}
+     */
+    public function getOrderDetails(string $woohooOrderId): array
+    {
+        $basePath = rtrim(config('woohoo.endpoints.order_status', '/rest/v3/orders'), '/');
+        $path     = $basePath . '/' . rawurlencode($woohooOrderId);
+        $response = $this->client->get($path);
+
+        if (! $response->successful()) {
+            $body    = $response->json() ?? [];
+            $code    = $body['code'] ?? null;
+            $message = $body['message'] ?? $response->body();
+            Log::warning('Woohoo Order Details API failed', [
+                'woohoo_order_id' => $woohooOrderId,
+                'http_status'     => $response->status(),
+                'code'            => $code,
+                'message'         => $message,
+            ]);
+
+            return [
+                'status'    => $code === self::ERROR_ORDER_NOT_AVAILABLE ? 'NOT_AVAILABLE' : 'UNKNOWN',
+                'errorCode' => $code,
+                'message'   => $message,
+            ];
+        }
+
+        return $response->json() ?? [];
+    }
+
+    /**
+     * Fetch order status for polling — prefers refno-based Status API, falls back to orderId.
+     */
+    public function fetchStatusForPolling(Order $order): array
+    {
+        if (filled($order->woohoo_refno)) {
+            return $this->getOrderStatusByRefno((string) $order->woohoo_refno);
+        }
+
+        if (filled($order->woohoo_order_id)) {
+            return $this->getOrderDetails((string) $order->woohoo_order_id);
+        }
+
+        return ['status' => 'UNKNOWN', 'message' => 'No woohoo_refno or woohoo_order_id on order'];
+    }
+
+    /**
+     * @deprecated Use getOrderDetails() directly.
      */
     public function getOrderStatus(string $woohooOrderId): array
     {
@@ -72,35 +121,58 @@ class WoohooOrderStatusService
      */
     public function applyOrderDetailsSnapshot(Order $order, array $data): string
     {
-        $woohooOrderId = $order->woohoo_order_id;
-        if (empty($woohooOrderId)) {
-            return 'unknown';
-        }
-
         $status = (string) ($data['status'] ?? $data['orderStatus'] ?? 'UNKNOWN');
         $status = strtoupper($status);
+
+        // Backfill woohoo_order_id from Status API response (refno-based call returns orderId)
+        $incomingOrderId = $data['orderId'] ?? $data['order_id'] ?? null;
+        if (is_string($incomingOrderId) && $incomingOrderId !== '' && empty($order->woohoo_order_id)) {
+            $order->update(['woohoo_order_id' => $incomingOrderId]);
+            $order->refresh();
+        }
+
+        $woohooOrderId = $order->woohoo_order_id;
 
         if ($status === 'NOT_AVAILABLE' || isset($data['errorCode'])) {
             $order->update([
                 'woohoo_response' => array_merge($order->woohoo_response ?? [], ['lastStatus' => $data]),
                 'delivery_status' => WoohooOrderService::DELIVERY_STATUS_FAILED,
-                'status' => Order::STATUS_CANCELLED,
+                'status'          => Order::STATUS_CANCELLED,
             ]);
 
             return 'unavailable';
         }
 
         $deliveryStatus = $this->mapToDeliveryStatus($status);
-        $orderStatus = $this->mapToOrderStatus($status);
+        $orderStatus    = $this->mapToOrderStatus($status);
 
         $order->update([
             'woohoo_response' => array_merge($order->woohoo_response ?? [], ['lastStatus' => $data]),
             'delivery_status' => $deliveryStatus,
-            'status' => $orderStatus,
+            'status'          => $orderStatus,
         ]);
 
         if (in_array($status, self::TERMINAL_STATUSES, true)) {
+            if ($status === self::STATUS_CANCELED || $status === 'CANCELLED') {
+                // Woohoo cancelled the order — initiate PayU refund if payment was received
+                if (! empty($order->payu_mihpayid)) {
+                    \App\Jobs\RefundOrderJob::dispatch($order, 'Woohoo order was cancelled.');
+                    Log::info('Woohoo CANCELED: RefundOrderJob dispatched', ['order_id' => $order->id]);
+                }
+
+                return 'canceled';
+            }
+
             if ($status === self::STATUS_COMPLETE || $status === 'COMPLETED') {
+                if (empty($woohooOrderId)) {
+                    Log::warning('Woohoo status COMPLETE but no woohoo_order_id — cannot fetch Activated Cards', [
+                        'order_id' => $order->id,
+                        'refno'    => $order->woohoo_refno,
+                    ]);
+
+                    return 'complete';
+                }
+
                 $activated = $this->activatedCardsService->fetchAndNormalize($woohooOrderId);
 
                 if ($activated['success'] && ! empty($activated['cards'])) {

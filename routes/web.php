@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\TagController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('products/sync', [ProductController::class, 'sync'])->name('products.sync');
         Route::post('products/sync-details', [ProductController::class, 'syncDetails'])->name('products.sync-details');
         Route::resource('tags', TagController::class)->except(['show']);
+        Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+        Route::post('orders/{order}/refund', [OrderController::class, 'retryRefund'])->name('orders.refund');
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
         Route::get('settings', [SettingController::class, 'index'])->name('settings.index');

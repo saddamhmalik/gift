@@ -20,6 +20,8 @@ import {
   Phone,
   MessageSquare,
   Send,
+  RotateCcw,
+  BanknoteArrowDown,
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { getOrderById, fetchOrderCards, resendOrderCards } from '../api/orders'
@@ -259,7 +261,8 @@ function DeliveryBadge({ delivery }) {
 export default function OrderDetailPage() {
   const { id } = useParams()
   const [params] = useSearchParams()
-  const payStatus = params.get('payment')
+  const payStatus       = params.get('payment')
+  const fulfillmentParam = params.get('fulfillment')
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['order', id],
@@ -267,7 +270,10 @@ export default function OrderDetailPage() {
     staleTime: 10_000,
     refetchInterval: (query) => {
       const order = query?.state?.data?.data
-      return order?.status === 'pending' ? 8000 : false
+      // Keep polling while pending OR while refund is in-flight
+      if (order?.status === 'pending') return 8000
+      if (order?.refund_status === 'pending') return 5000
+      return false
     },
   })
 
@@ -368,8 +374,94 @@ export default function OrderDetailPage() {
         <ArrowLeft size={15} /> My Orders
       </Link>
 
-      {/* Payment success banner */}
-      {payStatus === 'success' && (
+      {/* ── Refund banners (highest priority — shown instead of other banners) ── */}
+      {order.refund_status === 'refunded' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3 mb-6">
+          <RotateCcw size={20} className="text-blue-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-blue-800">Refund Initiated</p>
+            <p className="text-sm text-blue-700 mt-0.5">
+              We could not fulfil your gift card order, so your payment has been refunded. The
+              amount will reflect in your account within 5–7 business days depending on your bank.
+            </p>
+            {order.refunded_at && (
+              <p className="text-xs text-blue-500 mt-1.5">
+                Refund initiated on{' '}
+                {new Date(order.refunded_at).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {order.refund_status === 'pending' && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex items-start gap-3 mb-6">
+          <Loader2 size={20} className="text-indigo-500 flex-shrink-0 mt-0.5 animate-spin" />
+          <div>
+            <p className="font-semibold text-indigo-800">Refund in Progress</p>
+            <p className="text-sm text-indigo-700 mt-0.5">
+              We&apos;re processing your refund with the payment provider. This usually completes
+              within a few minutes.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {order.refund_status === 'failed' && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 mb-6">
+          <AlertCircle size={20} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-red-800">Refund Requires Attention</p>
+            <p className="text-sm text-red-700 mt-0.5">
+              We were unable to automatically process your refund. Our support team has been
+              notified and will resolve this shortly. Please contact support with order #{order.id}{' '}
+              if you don&apos;t hear back within 24 hours.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Timeout recovery — order still pending, Woohoo may still process it ── */}
+      {payStatus === 'paid' && fulfillmentParam === 'failed' &&
+        !order.refund_status &&
+        order.status === 'pending' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 mb-6">
+          <Loader2 size={20} className="text-amber-500 flex-shrink-0 mt-0.5 animate-spin" />
+          <div>
+            <p className="font-semibold text-amber-800">Checking your gift card order…</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              Your payment was received. The connection to our fulfilment partner timed out, but
+              we&apos;re automatically checking the order status — this usually resolves within a
+              few minutes.
+            </p>
+            <p className="text-xs text-amber-600/80 mt-1.5">Order #{order.id}</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Hard fulfillment failure — order cancelled, refund being initiated ── */}
+      {payStatus === 'paid' && fulfillmentParam === 'failed' &&
+        !order.refund_status &&
+        order.status === 'cancelled' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 mb-6">
+          <Clock size={20} className="text-amber-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-amber-800">Delivery issue — refund being processed</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              Your payment was received but we encountered an issue delivering your gift card. A
+              refund is being initiated automatically.
+            </p>
+            <p className="text-xs text-amber-600/80 mt-1.5">Order #{order.id}</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Payment success banner ── */}
+      {!order.refund_status && payStatus === 'success' && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-4 flex items-start gap-3 mb-6">
           <CheckCircle size={20} className="text-green-500 flex-shrink-0 mt-0.5" />
           <div>
@@ -387,7 +479,7 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {payStatus === 'paid' && (
+      {!order.refund_status && !fulfillmentParam && payStatus === 'paid' && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 mb-6">
           <Clock size={20} className="text-amber-500 flex-shrink-0 mt-0.5" />
           <div>

@@ -8,10 +8,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
+    public const REFUND_STATUS_PENDING  = 'pending';
+    public const REFUND_STATUS_REFUNDED = 'refunded';
+    public const REFUND_STATUS_FAILED   = 'failed';
+
     protected $fillable = [
         'user_id',
         'order_token',
         'payment_txnid',
+        'payu_mihpayid',
+        'payu_paid_amount',
+        'refund_status',
+        'refund_reason',
+        'refunded_at',
         'status',
         'total_amount',
         'points_used',
@@ -39,10 +48,12 @@ class Order extends Model
     protected function casts(): array
     {
         return [
-            'total_amount'  => 'decimal:2',
-            'points_used'   => 'decimal:2',
-            'points_earned' => 'decimal:2',
-            'woohoo_sync'   => 'boolean',
+            'total_amount'     => 'decimal:2',
+            'points_used'      => 'decimal:2',
+            'points_earned'    => 'decimal:2',
+            'payu_paid_amount' => 'decimal:2',
+            'refunded_at'      => 'datetime',
+            'woohoo_sync'      => 'boolean',
             'address' => 'array',
             'woohoo_request' => 'array',
             'woohoo_response' => 'array',

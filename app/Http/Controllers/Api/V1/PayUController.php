@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Exceptions\Woohoo\WoohooOrderException;
 use App\Http\Controllers\Api\Controller;
 use App\Http\Resources\V1\OrderResource;
+use App\Models\Order;
 use App\Models\Setting;
 use App\Repositories\OrderRepository;
 use App\Services\Loyalty\LoyaltyService;
@@ -138,8 +139,20 @@ class PayUController extends Controller
             return redirect($frontendUrl . '/payment/failure?reason=order_not_found');
         }
 
+        // Store PayU's transaction ID + paid amount immediately — needed for refunds.
+        // Do this before the idempotency check so even duplicate callbacks keep the value fresh.
+        $mihpayid   = $params['mihpayid'] ?? null;
+        $paidAmount = isset($params['amount']) ? (float) $params['amount'] : null;
+        if ($mihpayid && empty($order->payu_mihpayid)) {
+            $order->update([
+                'payu_mihpayid'    => $mihpayid,
+                'payu_paid_amount' => $paidAmount,
+            ]);
+            $order->refresh();
+        }
+
         // Idempotency — already fulfilled
-        if ($order->status !== \App\Models\Order::STATUS_PENDING) {
+        if ($order->status !== Order::STATUS_PENDING) {
             return redirect($frontendUrl . '/orders/' . $order->id . '?payment=success');
         }
 
@@ -153,18 +166,58 @@ class PayUController extends Controller
                 'firstname' => $params['firstname'] ?? $user?->first_name ?? $user?->name,
             ];
 
-            DB::transaction(function () use ($order, $billing, $user) {
-                // Fulfill via Woohoo
-                $this->fulfillService->fulfill($order, $billing, [], false);
+            // ── Phase 1: idempotency check (short-lived lock, no external calls) ────────
+            // Decide whether Woohoo needs to be called for this payment.
+            $alreadyDone   = false;
+            $shouldFulfill = false;
+
+            DB::transaction(function () use ($order, &$alreadyDone, &$shouldFulfill) {
+                $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+
+                if ($locked->status !== Order::STATUS_PENDING) {
+                    Log::info('PayU success: duplicate callback — order already processed', [
+                        'order_id' => $locked->id,
+                        'status'   => $locked->status,
+                    ]);
+                    $alreadyDone = true;
+                    return;
+                }
+
+                // woohoo_refno set means Woohoo already received this order (e.g. prior attempt or timeout recovery)
+                $shouldFulfill = empty($locked->woohoo_refno);
+
+                if (! $shouldFulfill) {
+                    Log::info('PayU success: skipping Woohoo — refno already set', ['order_id' => $locked->id]);
+                }
+            });
+
+            if ($alreadyDone) {
+                return redirect($frontendUrl . '/orders/' . $order->id . '?payment=success');
+            }
+
+            // ── Phase 2: Woohoo fulfillment OUTSIDE any transaction ──────────────────────
+            // This guarantees that on ConnectionException (client timeout),
+            // WoohooOrderService's $order->update(['woohoo_refno' => $refno]) is committed
+            // to the DB immediately and is never rolled back — so WoohooOrderPostTimeoutJob
+            // can find the refno and recover via the Order Status API.
+            if ($shouldFulfill) {
+                $order->refresh();
+                $this->fulfillService->fulfill($order, $billing, []);
+            }
+
+            // ── Phase 3: loyalty debit + credit (idempotent) ────────────────────────────
+            DB::transaction(function () use ($order, $user) {
+                $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+                $locked->refresh();
 
                 // Debit redeemed points now (payment confirmed)
-                if ($user && (float) $order->points_used > 0) {
-                    $this->loyaltyService->debitForOrder($order, (float) $order->points_used);
+                if ($user && (float) $locked->points_used > 0) {
+                    $this->loyaltyService->debitForOrder($locked, (float) $locked->points_used);
                 }
 
                 // Credit new earned points (only on the cash portion)
                 if ($user) {
-                    $this->loyaltyService->creditForOrder($order);
+                    $this->loyaltyService->creditForOrder($locked);
                 }
             });
 
@@ -177,6 +230,20 @@ class PayUController extends Controller
                 'message'     => $e->getMessage(),
                 'woohoo_code' => $e->getWoohooCode(),
             ]);
+
+            // CLIENT_TIMEOUT: we don't know if Woohoo received the order.
+            // WoohooOrderPostTimeoutJob will poll Status API; it will dispatch RefundOrderJob
+            // if Status API returns CANCELED. Do NOT refund immediately.
+            if ($e->getWoohooCode() !== 'CLIENT_TIMEOUT') {
+                // Mark delivery failed immediately so the order page shows the correct state
+                // before RefundOrderJob runs (which also sets this, but runs async).
+                $order->update([
+                    'delivery_status' => \App\Services\Woohoo\WoohooOrderService::DELIVERY_STATUS_FAILED,
+                    'status'          => Order::STATUS_CANCELLED,
+                ]);
+                \App\Jobs\RefundOrderJob::dispatch($order, $e->getMessage());
+            }
+
             return redirect($frontendUrl . '/orders/' . $order->id . '?payment=paid&fulfillment=failed');
         } catch (\Throwable $e) {
             Log::error('PayU success: unexpected error', [

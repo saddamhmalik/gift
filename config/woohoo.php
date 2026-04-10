@@ -17,9 +17,12 @@ return [
         'categories' => '/rest/v3/catalog/categories',
         'category_products' => '/rest/v3/catalog/categories',
         'product' => '/rest/v3/catalog/products',
-        'orders'          => '/rest/v3/orders',
-        'order_status'    => '/rest/v3/orders',
-        'activated_cards' => '/rest/v3/order', // append /{orderId}/cards/
+        'orders'               => '/rest/v3/orders',
+        // Order Status API (by refno): GET /rest/v3/order/{refno}/status
+        'order_refno_status'   => '/rest/v3/order',
+        // Order Details API (by Woohoo orderId, fallback): GET /rest/v3/orders/{orderId}
+        'order_status'         => '/rest/v3/orders',
+        'activated_cards'      => '/rest/v3/order', // append /{orderId}/cards/
     ],
 
     'org_short_code' => env('WOOHOO_ORG_SHORT_CODE', 'ONEZERO'),

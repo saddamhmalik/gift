@@ -57,6 +57,11 @@ class OrderResource extends JsonResource
             'woohoo_order_id' => $this->woohoo_order_id,
             'delivery_status' => $this->delivery_status,
 
+            // Refund info
+            'refund_status'   => $this->refund_status,
+            'refund_reason'   => $this->refund_reason,
+            'refunded_at'     => $this->refunded_at?->toIso8601String(),
+
             // Card data — card_details is the cards array for backward compat
             'card_details'    => $storedCards,
             'card_products'   => $cardProducts,

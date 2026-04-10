@@ -12,8 +12,10 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 /**
- * QC (Vikash): Status API first — max 3 checks; first after 2 min (async 202), then +5 min, +10 min if PROCESSING.
- * On COMPLETE → Activated Cards via WoohooOrderStatusService::applyOrderDetailsSnapshot.
+ * Poll Woohoo Order Status API after 202 async response or client timeout.
+ * Uses GET /rest/v3/order/{refno}/status (preferred) or GET /rest/v3/orders/{orderId} (fallback).
+ * On COMPLETE → triggers Activated Cards API to retrieve card details.
+ * Max checks + delays are configurable via woohoo.status_poll config.
  */
 class PollWoohooOrderStatusJob implements ShouldQueue
 {
@@ -44,24 +46,24 @@ class PollWoohooOrderStatusJob implements ShouldQueue
     public function handle(WoohooOrderStatusService $statusService): void
     {
         $order = Order::find($this->order->id);
-        if (! $order || empty($order->woohoo_order_id)) {
-            Log::warning('PollWoohooOrderStatusJob: missing order or woohoo_order_id', [
+        if (! $order || (empty($order->woohoo_refno) && empty($order->woohoo_order_id))) {
+            Log::warning('PollWoohooOrderStatusJob: missing order or both refno and woohoo_order_id', [
                 'order_id' => $this->order->id,
             ]);
             return;
         }
 
         $maxChecks = max(1, (int) config('woohoo.status_poll.max_checks', 3));
-        $woohooOrderId = $order->woohoo_order_id;
 
-        Log::info('PollWoohooOrderStatusJob: Status API', [
+        Log::info('PollWoohooOrderStatusJob: calling Order Status API', [
             'order_id'        => $order->id,
-            'woohoo_order_id' => $woohooOrderId,
+            'woohoo_refno'    => $order->woohoo_refno,
+            'woohoo_order_id' => $order->woohoo_order_id,
             'check'           => $this->checkIndex + 1,
             'max_checks'      => $maxChecks,
         ]);
 
-        $data = $statusService->getOrderDetails($woohooOrderId);
+        $data    = $statusService->fetchStatusForPolling($order);
         $outcome = $statusService->applyOrderDetailsSnapshot($order, $data);
 
         if ($outcome !== 'processing') {

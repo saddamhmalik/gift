@@ -4,6 +4,8 @@ namespace App\Services\Payment;
 
 use App\Models\Order;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PayUService
@@ -127,6 +129,69 @@ class PayUService
      * Verify PayU response hash (reverse hash formula).
      * Formula: sha512(SALT|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
      */
+    /**
+     * Initiate a full refund for a failed order via PayU Refund API.
+     *
+     * @return array{success: bool, message: string, payu_response: array}
+     */
+    public function refundFull(Order $order, string $reason = 'Order fulfillment failed'): array
+    {
+        $mihpayid = $order->payu_mihpayid;
+        $txnid    = $order->payment_txnid;
+        $amount   = (string) ($order->payu_paid_amount ?? $order->total_amount);
+
+        if (empty($mihpayid)) {
+            return ['success' => false, 'message' => 'payu_mihpayid not set on order', 'payu_response' => []];
+        }
+
+        // PayU refund hash: sha512(key|mihpayid|txnId|refundAmount|refundReason|notifyUrl|salt)
+        $notifyUrl = '';
+        $hashStr = implode('|', [
+            $this->key,
+            $mihpayid,
+            $txnid,
+            $amount,
+            $reason,
+            $notifyUrl,
+            $this->salt,
+        ]);
+        $hash = hash('sha512', $hashStr);
+
+        $refundUrl = rtrim($this->payuUrl, '/') . '/merchant/postservice.php?form=2';
+
+        try {
+            $response = Http::asForm()->timeout(30)->post($refundUrl, [
+                'key'           => $this->key,
+                'command'       => 'cancel_refund_transaction',
+                'var1'          => $mihpayid,
+                'var2'          => $txnid,
+                'var3'          => $amount,
+                'var4'          => $reason,
+                'var5'          => $notifyUrl,
+                'hash'          => $hash,
+            ]);
+
+            $body = $response->json() ?? [];
+
+            Log::info('PayU refund API response', [
+                'order_id'  => $order->id,
+                'mihpayid'  => $mihpayid,
+                'status'    => $response->status(),
+                'body'      => $body,
+            ]);
+
+            $status = strtolower($body['status'] ?? '');
+            if ($response->successful() && in_array($status, ['success', 'pending'], true)) {
+                return ['success' => true, 'message' => $body['msg'] ?? 'Refund initiated', 'payu_response' => $body];
+            }
+
+            return ['success' => false, 'message' => $body['msg'] ?? 'PayU refund failed', 'payu_response' => $body];
+        } catch (\Throwable $e) {
+            Log::error('PayU refund API exception', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+            return ['success' => false, 'message' => $e->getMessage(), 'payu_response' => []];
+        }
+    }
+
     public function verifyResponseHash(array $params): bool
     {
         $hashStr = implode('|', [

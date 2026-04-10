@@ -5,6 +5,7 @@ namespace App\Services\Order;
 use App\Jobs\PollWoohooOrderStatusJob;
 use App\Models\Order;
 use App\Services\Woohoo\WoohooOrderService;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 class FulfillOrderViaWoohooService
@@ -14,18 +15,34 @@ class FulfillOrderViaWoohooService
     ) {}
 
     /**
-     * Create Woohoo order (SVC) and optionally start status polling for async.
+     * Create Woohoo order (SVC) and start status polling for async orders.
      * Call this after payment success from your payment gateway.
      *
-     * @param  array{email?: string, telephone?: string, name?: string, line1?: string, city?: string, state?: string, postalCode?: string, country?: string}  $billing  Billing (email, telephone mandatory). If omitted, uses order's stored billing_*.
-     * @param  array<string, string>  $address  Optional address; falls back to billing.
+     * syncOnly is derived automatically from total line quantity:
+     *   - qty ≤ 4  → syncOnly = true  (Woohoo activates cards synchronously, returns 201)
+     *   - qty ≥ 5  → syncOnly = false (async, Woohoo returns 202; poll Order Status API until
+     *                COMPLETE, then call Activated Cards API to retrieve card details)
+     *
+     * @param  array{email?: string, telephone?: string, name?: string, line1?: string, city?: string, state?: string, postalCode?: string, country?: string}  $billing
+     * @param  array<string, string>  $address
+     * @param  bool|null  $syncOnly  null = auto-derive from quantity (recommended); pass bool to override
      * @return array{status: int, refno: string, woohoo_order_id?: string, sync: bool, poll_dispatched: bool}
      */
-    public function fulfill(Order $order, array $billing = [], array $address = [], bool $syncOnly = false): array
+    public function fulfill(Order $order, array $billing = [], array $address = [], ?bool $syncOnly = null): array
     {
         $order->loadMissing(['items.product']);
         if ($order->items->isEmpty()) {
             throw new InvalidArgumentException('Order has no items.');
+        }
+
+        if ($syncOnly === null) {
+            $totalQty = (int) $order->items->sum('quantity');
+            $syncOnly = $totalQty <= 4;
+            Log::info('Woohoo fulfill: syncOnly derived from quantity', [
+                'order_id'  => $order->id,
+                'total_qty' => $totalQty,
+                'sync_only' => $syncOnly,
+            ]);
         }
 
         $billing = $this->resolveBilling($order, $billing);
@@ -35,7 +52,12 @@ class FulfillOrderViaWoohooService
 
         $result = $this->woohooOrderService->createOrder($order, $billing, $address, $syncOnly);
         $pollDispatched = false;
-        if ($result['status'] === 202 && ! $result['sync']) {
+
+        // 202 = Woohoo accepted async (qty ≥ 5 or syncOnly forced false).
+        // Poll Order Status API (by refno) until COMPLETE, then fetch Activated Cards.
+        // refno is always stored before the API call, so polling can always recover even
+        // if woohoo_order_id is missing from the 202 response.
+        if ($result['status'] === 202) {
             PollWoohooOrderStatusJob::dispatchAfterAsyncOrder($order);
             $pollDispatched = true;
         }

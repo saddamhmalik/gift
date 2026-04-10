@@ -11,7 +11,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 /**
- * QC: after Order POST client timeout, wait 40s then run Status polling if we have woohoo_order_id.
+ * After a Woohoo Order POST client timeout, wait then poll Order Status API using the refno
+ * (saved before throwing) to check whether Woohoo received the order.
  */
 class WoohooOrderPostTimeoutJob implements ShouldQueue
 {
@@ -31,15 +32,20 @@ class WoohooOrderPostTimeoutJob implements ShouldQueue
             return;
         }
 
-        if (empty($order->woohoo_order_id)) {
-            Log::warning('Woohoo Order POST timeout: no woohoo_order_id for Status API', [
+        // woohoo_refno is saved before the exception is thrown (outside any transaction),
+        // so it must be present for recovery to proceed.
+        if (empty($order->woohoo_refno) && empty($order->woohoo_order_id)) {
+            Log::warning('Woohoo Order POST timeout: no refno or order_id — cannot poll Status API', [
                 'order_id' => $order->id,
-                'refno'    => $order->woohoo_refno,
             ]);
             return;
         }
 
-        Log::info('Woohoo Order POST timeout recovery: starting Status poll', ['order_id' => $order->id]);
+        Log::info('Woohoo Order POST timeout recovery: starting Status poll', [
+            'order_id'    => $order->id,
+            'refno'       => $order->woohoo_refno,
+            'woohoo_order_id' => $order->woohoo_order_id,
+        ]);
         PollWoohooOrderStatusJob::dispatchForCardSyncDelay($order);
     }
 }
