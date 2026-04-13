@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -143,6 +144,38 @@ class WoohooClient
         Cache::forget('woohoo_bearer_token');
     }
 
+    /**
+     * Woohoo may invalidate the cached bearer token (e.g. server-side expiry).
+     * Response body often contains oauth_problem=token_rejected or JSON with oauth_problem.
+     */
+    protected function responseIndicatesTokenRejected(Response $response): bool
+    {
+        $body = $response->body();
+        if ($body === '') {
+            return false;
+        }
+        if (stripos($body, 'token_rejected') !== false) {
+            return true;
+        }
+        $json = json_decode($body, true);
+        if (is_array($json)) {
+            $problem = $json['oauth_problem'] ?? $json['error'] ?? null;
+            if (is_string($problem) && stripos($problem, 'token_rejected') !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  \Illuminate\Http\Client\Response|PromiseInterface  $pending
+     */
+    protected function awaitResponse(Response|PromiseInterface $pending): Response
+    {
+        return $pending instanceof PromiseInterface ? $pending->wait() : $pending;
+    }
+
     /** @return array<string, string> */
     protected function getOAuthHeaders(): array
     {
@@ -152,11 +185,6 @@ class WoohooClient
 
     public function get(string $path, array $query = [])
     {
-        $token = $this->getBearerToken();
-        if (! $token) {
-            return Http::response(null, 401);
-        }
-
         // Per Woohoo OAuth2.0 docs (GET with query params):
         //   Step B: sort query params alphabetically
         //   Step C: rawurlencode the COMPLETE URL (including sorted query params)
@@ -188,16 +216,39 @@ class WoohooClient
         $baseString = 'GET&' . $encodedUrl;
         $signature  = hash_hmac('sha512', $baseString, $this->clientSecret);
 
-        $result = Http::timeout((int) config('woohoo.http_timeout.get', 30))
-            ->withHeaders(array_merge($this->getOAuthHeaders(), [
-                'Authorization' => 'Bearer ' . $token,
-                'Content-Type'  => 'application/json',
-                'Accept'        => '*/*',
-                'dateAtClient'  => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
-                'signature'     => $signature,
-            ]))->get($requestUrl);
+        $timeout = (int) config('woohoo.http_timeout.get', 30);
 
-        return $result instanceof PromiseInterface ? $result->wait() : $result;
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $token = $this->getBearerToken();
+            if (! $token) {
+                return Http::response(null, 401);
+            }
+
+            $result = Http::timeout($timeout)
+                ->withHeaders(array_merge($this->getOAuthHeaders(), [
+                    'Authorization' => 'Bearer ' . $token,
+                    'Content-Type'  => 'application/json',
+                    'Accept'        => '*/*',
+                    'dateAtClient'  => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
+                    'signature'     => $signature,
+                ]))->get($requestUrl);
+
+            $result = $this->awaitResponse($result);
+
+            if ($attempt === 0 && $this->responseIndicatesTokenRejected($result)) {
+                Log::warning('Woohoo API: bearer token rejected; clearing cache and retrying once', [
+                    'path'   => $cleanPath,
+                    'status' => $result->status(),
+                ]);
+                $this->clearCachedToken();
+
+                continue;
+            }
+
+            return $result;
+        }
+
+        throw new \LogicException('WoohooClient::get: retry loop exited without return');
     }
 
     /**
@@ -209,11 +260,6 @@ class WoohooClient
      */
     public function post(string $path, array $body)
     {
-        $token = $this->getBearerToken();
-        if (! $token) {
-            return Http::response(null, 401);
-        }
-
         $url = $this->baseUrl . $path;
         $sortedBody = $this->sortJsonKeysRecursive($body);
         $bodyJson = json_encode($sortedBody, JSON_UNESCAPED_SLASHES);
@@ -223,19 +269,38 @@ class WoohooClient
         $signature = hash_hmac('sha512', $baseString, $this->clientSecret);
 
         $timeout = (int) config('woohoo.http_timeout.post', 10);
-        $result = Http::timeout($timeout)
-            ->withHeaders(array_merge($this->getOAuthHeaders(), [
-                'Authorization' => 'Bearer ' . $token,
-                'Content-Type' => 'application/json',
-                'Accept' => '*/*',
-                'dateAtClient' => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
-                'signature' => $signature,
-            ]))->withBody($bodyJson, 'application/json')->post($url);
 
-        if (method_exists($result, 'wait')) {
-            $result = $result->wait();
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $token = $this->getBearerToken();
+            if (! $token) {
+                return Http::response(null, 401);
+            }
+
+            $result = Http::timeout($timeout)
+                ->withHeaders(array_merge($this->getOAuthHeaders(), [
+                    'Authorization' => 'Bearer ' . $token,
+                    'Content-Type' => 'application/json',
+                    'Accept' => '*/*',
+                    'dateAtClient' => now()->utc()->isoFormat('YYYY-MM-DDTHH:mm:ss[Z]'),
+                    'signature' => $signature,
+                ]))->withBody($bodyJson, 'application/json')->post($url);
+
+            $result = $this->awaitResponse($result);
+
+            if ($attempt === 0 && $this->responseIndicatesTokenRejected($result)) {
+                Log::warning('Woohoo API: bearer token rejected; clearing cache and retrying once', [
+                    'path'   => $path,
+                    'status' => $result->status(),
+                ]);
+                $this->clearCachedToken();
+
+                continue;
+            }
+
+            return $result;
         }
-        return $result;
+
+        throw new \LogicException('WoohooClient::post: retry loop exited without return');
     }
 
     /**
