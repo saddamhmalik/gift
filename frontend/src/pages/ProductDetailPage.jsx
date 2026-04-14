@@ -24,6 +24,9 @@ import { useAuth } from '../contexts/AuthContext'
 import { useOrder } from '../contexts/OrderContext'
 import { initiatePayment, redirectToPayU } from '../api/payment'
 
+/** Same upper bound as OrderService / order API (quantity 1–99). */
+const MAX_ORDER_QUANTITY = 99
+
 /* ─── HTML helpers ──────────────────────────────────────────────────────────── */
 function HtmlContent({ html }) {
   if (!html) return null
@@ -411,13 +414,15 @@ export default function ProductDetailPage() {
                 {qty}
               </span>
               <button
-                onClick={() => setQty((q) => Math.min(4, q + 1))}
+                onClick={() => setQty((q) => Math.min(MAX_ORDER_QUANTITY, q + 1))}
                 className="px-3 py-2 text-gray-600 hover:bg-gray-50 font-bold transition-colors text-lg leading-none"
               >
                 +
               </button>
             </div>
-            <span className="text-xs text-gray-400">(max 4 per order)</span>
+            <span className="text-xs text-gray-400">
+              (max {MAX_ORDER_QUANTITY} per order)
+            </span>
           </div>
 
           {/* ── Loyalty Points Toggle (logged in users only) ── */}
