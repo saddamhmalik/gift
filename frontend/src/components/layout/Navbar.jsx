@@ -17,10 +17,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../contexts/AuthContext'
 import { getTags } from '../../api/tags'
 import { getLoyaltyBalance } from '../../api/loyalty'
+import { getHotDeals } from '../../api/products'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
-  { to: '/categories', label: 'Categories' },
+  { to: '/gift-cards', label: 'Gift cards' },
   { to: '/hot-deals', label: '🔥 Deals' },
   { to: '/trending', label: 'Trending' },
   { to: '/new-arrivals', label: 'New' },
@@ -40,6 +41,17 @@ export default function Navbar() {
 
   const { data: tagsData } = useQuery({ queryKey: ['tags'], queryFn: getTags, staleTime: 300_000 })
   const tags = tagsData?.data ?? []
+
+  const { data: hotDealsPayload } = useQuery({
+    queryKey: ['hot-deals', 'exists'],
+    queryFn: () => getHotDeals({ limit: 1 }),
+    staleTime: 300_000,
+  })
+  const hasHotDeals =
+    Array.isArray(hotDealsPayload?.data) && hotDealsPayload.data.length > 0
+  const navLinks = NAV_LINKS.filter(
+    (l) => l.to !== '/hot-deals' || hasHotDeals
+  )
 
   const { data: loyaltyData } = useQuery({
     queryKey: ['loyalty', 'balance'],
@@ -99,7 +111,7 @@ export default function Navbar() {
 
           {/* ── Desktop nav ── */}
           <nav className="hidden md:flex items-center gap-1 text-sm">
-            {NAV_LINKS.map(({ to, label }) => (
+            {navLinks.map(({ to, label }) => (
               <Link
                 key={to}
                 to={to}
@@ -355,7 +367,7 @@ export default function Navbar() {
             />
           </form>
 
-          {NAV_LINKS.map(({ to, label }) => (
+          {navLinks.map(({ to, label }) => (
             <Link
               key={to}
               to={to}

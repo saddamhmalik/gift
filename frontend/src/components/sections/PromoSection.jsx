@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { ArrowRight } from 'lucide-react'
+import { getHotDeals } from '../../api/products'
 
 const PROMOS = [
   {
@@ -24,7 +26,7 @@ const PROMOS = [
     title: '500+ Top Brands',
     desc: 'From daily essentials to travel, entertainment & lifestyle — everything on PayFlex.',
     cta: 'Explore All',
-    link: '/categories',
+    link: '/gift-cards',
     gradient: 'from-emerald-500 via-teal-500 to-cyan-600',
     emoji: '🎁',
     pattern: 'radial-gradient(circle at 50% 10%, rgba(255,255,255,0.12) 0%, transparent 60%)',
@@ -32,10 +34,27 @@ const PROMOS = [
 ]
 
 export default function PromoSection() {
+  const { data: hotDealsPayload } = useQuery({
+    queryKey: ['hot-deals', 'exists'],
+    queryFn: () => getHotDeals({ limit: 1 }),
+    staleTime: 300_000,
+  })
+  const hasHotDeals =
+    Array.isArray(hotDealsPayload?.data) && hotDealsPayload.data.length > 0
+  const promos = PROMOS.filter((p) => p.link !== '/hot-deals' || hasHotDeals)
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {PROMOS.map(({ title, desc, cta, link, gradient, emoji, pattern }) => (
+      <div
+        className={`grid gap-4 ${
+          promos.length === 3
+            ? 'grid-cols-1 sm:grid-cols-3'
+            : promos.length === 2
+              ? 'grid-cols-1 sm:grid-cols-2'
+              : 'grid-cols-1'
+        }`}
+      >
+        {promos.map(({ title, desc, cta, link, gradient, emoji, pattern }) => (
           <Link
             key={title}
             to={link}

@@ -253,14 +253,10 @@ export default function ProductDetailPage() {
           Home
         </Link>
         <ChevronRight size={12} />
-        {product.category && (
-          <>
-            <Link to={`/categories/${product.category.slug}`} className="hover:text-primary-500">
-              {product.category.name}
-            </Link>
-            <ChevronRight size={12} />
-          </>
-        )}
+        <Link to="/gift-cards" className="hover:text-primary-500">
+          Gift cards
+        </Link>
+        <ChevronRight size={12} />
         <span className="text-gray-600 font-medium truncate max-w-[200px]">{product.name}</span>
       </nav>
 
@@ -302,14 +298,12 @@ export default function ProductDetailPage() {
 
         {/* ── Right: Info + actions ── */}
         <div className="flex flex-col gap-5">
-          {product.category && (
-            <Link
-              to={`/categories/${product.category.slug}`}
-              className="text-xs font-semibold uppercase tracking-widest text-primary-500"
-            >
-              {product.category.name}
-            </Link>
-          )}
+          <Link
+            to="/gift-cards"
+            className="text-xs font-semibold uppercase tracking-widest text-primary-500"
+          >
+            Gift cards
+          </Link>
 
           <h1 className="text-3xl font-extrabold text-gray-900 leading-tight">{product.name}</h1>
 

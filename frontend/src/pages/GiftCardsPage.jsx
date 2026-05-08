@@ -1,19 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import {
-  Search,
-  SlidersHorizontal,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  Loader2,
-  PackageSearch,
-} from 'lucide-react'
+import { SlidersHorizontal, X, ChevronLeft, ChevronRight, PackageSearch, CreditCard } from 'lucide-react'
 import { searchProducts } from '../api/products'
 import ProductCard from '../components/ui/ProductCard'
 
-/* ─── Skeleton grid ── */
 function SkeletonCard() {
   return (
     <div className="animate-pulse rounded-2xl overflow-hidden bg-slate-100" style={{ height: 220 }}>
@@ -27,61 +18,54 @@ function SkeletonCard() {
 }
 
 const SORT_OPTIONS = [
-  { value: 'popular', label: 'Most Popular' },
-  { value: 'newest', label: 'Newest First' },
-  { value: 'price_asc', label: 'Price: Low → High' },
-  { value: 'price_desc', label: 'Price: High → Low' },
+  { value: 'popular', label: 'Most popular' },
+  { value: 'newest', label: 'Newest first' },
+  { value: 'price_asc', label: 'Price: low → high' },
+  { value: 'price_desc', label: 'Price: high → low' },
 ]
 
-export default function SearchPage() {
+export default function GiftCardsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-
-  // Controlled state mirrors URL params
-  const [inputVal, setInputVal] = useState(searchParams.get('q') ?? '')
   const [minPrice, setMinPrice] = useState(searchParams.get('min_price') ?? '')
   const [maxPrice, setMaxPrice] = useState(searchParams.get('max_price') ?? '')
   const [sort, setSort] = useState(searchParams.get('sort') ?? 'popular')
-  const [page, setPage] = useState(Number(searchParams.get('page') ?? 1))
   const [filtersOpen, setFiltersOpen] = useState(false)
 
-  const q = searchParams.get('q') ?? ''
-
-  // Sync URL → state when user navigates back/forward
   useEffect(() => {
-    setInputVal(searchParams.get('q') ?? '')
     setMinPrice(searchParams.get('min_price') ?? '')
     setMaxPrice(searchParams.get('max_price') ?? '')
     setSort(searchParams.get('sort') ?? 'popular')
-    setPage(Number(searchParams.get('page') ?? 1))
   }, [searchParams])
 
   const pushParams = useCallback(
     (overrides = {}) => {
-      const next = {
-        ...(inputVal ? { q: inputVal } : {}),
+      setSearchParams({
         ...(minPrice ? { min_price: minPrice } : {}),
         ...(maxPrice ? { max_price: maxPrice } : {}),
         ...(sort !== 'popular' ? { sort } : {}),
-        page: '1',
         ...overrides,
-      }
-      setSearchParams(next)
+      })
     },
-    [inputVal, minPrice, maxPrice, sort, setSearchParams]
+    [minPrice, maxPrice, sort, setSearchParams]
   )
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['search', q, minPrice, maxPrice, sort, page],
+    queryKey: [
+      'gift-cards-browse',
+      searchParams.get('min_price'),
+      searchParams.get('max_price'),
+      searchParams.get('sort'),
+      searchParams.get('page'),
+    ],
     queryFn: () =>
       searchProducts({
-        q,
         min_price: searchParams.get('min_price') ?? undefined,
         max_price: searchParams.get('max_price') ?? undefined,
         sort: searchParams.get('sort') ?? undefined,
-        page,
-        per_page: 18,
+        page: Number(searchParams.get('page') ?? 1),
+        per_page: 24,
       }),
-    staleTime: 1000 * 30,
+    staleTime: 30_000,
     placeholderData: (prev) => prev,
   })
 
@@ -90,107 +74,60 @@ export default function SearchPage() {
   const totalHits = meta.total ?? 0
   const lastPage = meta.last_page ?? 1
 
-  const handleSearch = (e) => {
-    e.preventDefault()
-    pushParams({ q: inputVal, page: '1' })
-  }
-
-  const clearFilter = (key) => {
-    const p = Object.fromEntries(searchParams.entries())
-    delete p[key]
-    p.page = '1'
-    setSearchParams(p)
-  }
-
   const activeFilters = [
     minPrice && { key: 'min_price', label: `Min ₹${minPrice}` },
     maxPrice && { key: 'max_price', label: `Max ₹${maxPrice}` },
   ].filter(Boolean)
 
+  const clearFilter = (key) => {
+    const p = Object.fromEntries(searchParams.entries())
+    delete p[key]
+    p.page = '1'
+    if (key === 'min_price') setMinPrice('')
+    if (key === 'max_price') setMaxPrice('')
+    setSearchParams(p)
+  }
+
   const busy = isLoading || isFetching
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      {/* ── Search hero ── */}
       <div className="bg-gradient-to-br from-surface-950 via-slate-900 to-surface-950 pt-24 pb-10 px-4">
-        <div className="max-w-2xl mx-auto text-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-1">
-            {q ? (
-              <>
-                Results for <span className="text-primary-400">"{q}"</span>
-              </>
-            ) : (
-              'Browse Gift Cards'
-            )}
-          </h1>
+        <div className="max-w-2xl mx-auto text-center mb-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary-500/20 mb-4">
+            <CreditCard className="text-primary-400" size={24} />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-1">All gift cards</h1>
           {!isLoading && (
             <p className="text-sm text-slate-400 mt-1">
-              {q
-                ? `${totalHits.toLocaleString()} gift card${totalHits !== 1 ? 's' : ''} found`
-                : 'Search by brand or keyword'}
+              {totalHits.toLocaleString()} card{totalHits !== 1 ? 's' : ''} available
             </p>
           )}
         </div>
-
-        {/* Search bar */}
-        <form onSubmit={handleSearch} className="max-w-xl mx-auto flex gap-2">
-          <div className="flex-1 flex items-center gap-2 bg-white/10 border border-white/15 rounded-2xl px-4 py-3 focus-within:border-primary-400 transition-all">
-            <Search size={16} className="text-slate-400 shrink-0" />
-            <input
-              type="text"
-              autoFocus={!q}
-              value={inputVal}
-              onChange={(e) => setInputVal(e.target.value)}
-              placeholder="Search gift cards and brands…"
-              className="flex-1 bg-transparent outline-none text-white placeholder-slate-500 text-sm"
-            />
-            {inputVal && (
-              <button
-                type="button"
-                onClick={() => {
-                  setInputVal('')
-                  pushParams({ q: '', page: '1' })
-                }}
-                className="text-slate-500 hover:text-slate-300 transition-colors"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-          <button
-            type="submit"
-            className="px-5 py-3 rounded-2xl bg-primary-600 hover:bg-primary-500 text-white font-bold text-sm transition-colors shadow-md shadow-primary-900/30"
-          >
-            Search
-          </button>
-        </form>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* ── Sidebar filters (desktop) ── */}
-          <aside className="hidden lg:block w-56 shrink-0 space-y-5">
-            <FilterPanel
+          <aside className="hidden lg:block w-56 shrink-0">
+            <FilterSidebar
               minPrice={minPrice}
               setMinPrice={setMinPrice}
               maxPrice={maxPrice}
               setMaxPrice={setMaxPrice}
-              onApplyPrice={() => pushParams({ page: '1' })}
-              onClearAll={() => {
+              onApply={() => pushParams({ page: '1' })}
+              onClear={() => {
                 setMinPrice('')
                 setMaxPrice('')
-                setSearchParams(q ? { q } : {})
+                setSearchParams({})
               }}
             />
           </aside>
 
-          {/* ── Main content ── */}
           <div className="flex-1 min-w-0">
-            {/* Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
               <div className="flex items-center gap-2 flex-wrap">
-                {/* Mobile filter toggle */}
                 <button
+                  type="button"
                   onClick={() => setFiltersOpen((v) => !v)}
                   className="lg:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
                 >
@@ -203,26 +140,30 @@ export default function SearchPage() {
                   )}
                 </button>
 
-                {/* Active filter chips */}
                 {activeFilters.map((f) => (
                   <span
                     key={f.key}
                     className="inline-flex items-center gap-1 bg-primary-50 border border-primary-200 text-primary-700 text-xs font-semibold px-2.5 py-1 rounded-full"
                   >
                     {f.label}
-                    <button onClick={() => clearFilter(f.key)} className="hover:text-primary-900">
+                    <button type="button" onClick={() => clearFilter(f.key)} className="hover:text-primary-900">
                       <X size={11} />
                     </button>
                   </span>
                 ))}
               </div>
 
-              {/* Sort */}
               <select
                 value={sort}
                 onChange={(e) => {
-                  setSort(e.target.value)
-                  pushParams({ sort: e.target.value, page: '1' })
+                  const v = e.target.value
+                  setSort(v)
+                  setSearchParams({
+                    ...(minPrice ? { min_price: minPrice } : {}),
+                    ...(maxPrice ? { max_price: maxPrice } : {}),
+                    ...(v !== 'popular' ? { sort: v } : {}),
+                    page: '1',
+                  })
                 }}
                 className="text-sm border border-gray-200 rounded-xl px-3 py-2 bg-white text-gray-700 outline-none focus:border-primary-400 shadow-sm cursor-pointer"
               >
@@ -234,29 +175,27 @@ export default function SearchPage() {
               </select>
             </div>
 
-            {/* Mobile filter panel */}
             {filtersOpen && (
               <div className="lg:hidden mb-5 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <FilterPanel
+                <FilterSidebar
                   minPrice={minPrice}
                   setMinPrice={setMinPrice}
                   maxPrice={maxPrice}
                   setMaxPrice={setMaxPrice}
-                  onApplyPrice={() => {
-                    pushParams({ page: '1' })
+                  onApply={() => {
+                    pushParams({})
                     setFiltersOpen(false)
                   }}
-                  onClearAll={() => {
+                  onClear={() => {
                     setMinPrice('')
                     setMaxPrice('')
-                    setSearchParams(q ? { q } : {})
+                    setSearchParams({})
                     setFiltersOpen(false)
                   }}
                 />
               </div>
             )}
 
-            {/* Results grid */}
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {Array.from({ length: 9 }).map((_, i) => (
@@ -264,21 +203,32 @@ export default function SearchPage() {
                 ))}
               </div>
             ) : results.length === 0 ? (
-              <EmptyState query={q} />
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mb-5">
+                  <PackageSearch size={36} className="text-gray-300" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">No gift cards found</h3>
+                <p className="text-sm text-gray-400 max-w-xs mb-6">Adjust filters or check back after sync.</p>
+                <Link
+                  to="/"
+                  className="px-5 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-500 transition-colors"
+                >
+                  Back home
+                </Link>
+              </div>
             ) : (
               <>
                 <div
-                  className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 transition-opacity ${isFetching ? 'opacity-60' : 'opacity-100'}`}
+                  className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 transition-opacity ${busy ? 'opacity-60' : 'opacity-100'}`}
                 >
                   {results.map((product, i) => (
                     <ProductCard key={product.id} product={product} index={i} />
                   ))}
                 </div>
 
-                {/* Pagination */}
                 {lastPage > 1 && (
                   <Pagination
-                    page={page}
+                    page={Number(searchParams.get('page') ?? 1)}
                     lastPage={lastPage}
                     onPage={(p) => pushParams({ page: String(p) })}
                   />
@@ -292,26 +242,20 @@ export default function SearchPage() {
   )
 }
 
-/* ─── Filter Panel ── */
-function FilterPanel({ minPrice, setMinPrice, maxPrice, setMaxPrice, onApplyPrice, onClearAll }) {
+function FilterSidebar({ minPrice, setMinPrice, maxPrice, setMaxPrice, onApply, onClear }) {
   const hasFilters = minPrice || maxPrice
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-5">
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Filters</p>
         {hasFilters && (
-          <button
-            onClick={onClearAll}
-            className="text-xs text-primary-500 hover:text-primary-700 font-semibold"
-          >
-            Clear all
+          <button type="button" onClick={onClear} className="text-xs text-primary-500 hover:text-primary-700 font-semibold">
+            Clear
           </button>
         )}
       </div>
-
-      {/* Price range */}
       <div>
-        <p className="text-xs font-semibold text-gray-700 mb-2">Price Range (₹)</p>
+        <p className="text-xs font-semibold text-gray-700 mb-2">Price range (₹)</p>
         <div className="flex gap-2">
           <input
             type="number"
@@ -331,7 +275,8 @@ function FilterPanel({ minPrice, setMinPrice, maxPrice, setMaxPrice, onApplyPric
           />
         </div>
         <button
-          onClick={onApplyPrice}
+          type="button"
+          onClick={onApply}
           className="mt-2 w-full py-1.5 rounded-lg bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold transition-colors"
         >
           Apply
@@ -341,46 +286,6 @@ function FilterPanel({ minPrice, setMinPrice, maxPrice, setMaxPrice, onApplyPric
   )
 }
 
-/* ─── Empty state ── */
-function EmptyState({ query }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mb-5">
-        <PackageSearch size={36} className="text-gray-300" />
-      </div>
-      <h3 className="text-lg font-bold text-gray-800 mb-2">
-        {query ? (
-          <>
-            No results for <span className="text-primary-500">"{query}"</span>
-          </>
-        ) : (
-          'No products found'
-        )}
-      </h3>
-      <p className="text-sm text-gray-400 max-w-xs mb-6">
-        {query
-          ? 'Try different keywords or browse all gift cards.'
-          : 'Try searching for a brand or gift card.'}
-      </p>
-      <div className="flex gap-3">
-        <Link
-          to="/"
-          className="px-5 py-2 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-500 transition-colors"
-        >
-          Browse Home
-        </Link>
-        <Link
-          to="/gift-cards"
-          className="px-5 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors"
-        >
-          All gift cards
-        </Link>
-      </div>
-    </div>
-  )
-}
-
-/* ─── Pagination ── */
 function Pagination({ page, lastPage, onPage }) {
   const pages = []
   const start = Math.max(1, page - 2)
@@ -390,6 +295,7 @@ function Pagination({ page, lastPage, onPage }) {
   return (
     <div className="flex items-center justify-center gap-2 mt-10">
       <button
+        type="button"
         onClick={() => onPage(page - 1)}
         disabled={page === 1}
         className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
@@ -400,6 +306,7 @@ function Pagination({ page, lastPage, onPage }) {
       {start > 1 && (
         <>
           <button
+            type="button"
             onClick={() => onPage(1)}
             className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
           >
@@ -412,10 +319,11 @@ function Pagination({ page, lastPage, onPage }) {
       {pages.map((p) => (
         <button
           key={p}
+          type="button"
           onClick={() => onPage(p)}
           className={`w-9 h-9 rounded-xl border text-sm font-semibold transition-colors shadow-sm ${
             p === page
-              ? 'bg-primary-600 border-primary-600 text-white shadow-primary-200'
+              ? 'bg-primary-600 border-primary-600 text-white'
               : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
           }`}
         >
@@ -427,6 +335,7 @@ function Pagination({ page, lastPage, onPage }) {
         <>
           {end < lastPage - 1 && <span className="text-gray-400 text-sm">…</span>}
           <button
+            type="button"
             onClick={() => onPage(lastPage)}
             className="w-9 h-9 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
           >
@@ -436,8 +345,9 @@ function Pagination({ page, lastPage, onPage }) {
       )}
 
       <button
+        type="button"
         onClick={() => onPage(page + 1)}
-        disabled={page === lastPage}
+        disabled={page >= lastPage}
         className="w-9 h-9 rounded-xl border border-gray-200 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
       >
         <ChevronRight size={16} />

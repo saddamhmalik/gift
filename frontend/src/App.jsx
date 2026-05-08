@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import CategoriesPage from './pages/CategoriesPage'
+import GiftCardsPage from './pages/GiftCardsPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import ProductListPage from './pages/ProductListPage'
 import OrdersPage from './pages/OrdersPage'
@@ -53,6 +54,14 @@ export default function App() {
                 element={
                   <Layout>
                     <HomePage />
+                  </Layout>
+                }
+              />
+              <Route
+                path="/gift-cards"
+                element={
+                  <Layout>
+                    <GiftCardsPage />
                   </Layout>
                 }
               />

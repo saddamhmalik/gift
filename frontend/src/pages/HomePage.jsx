@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Flame, TrendingUp, Star, Sparkles, Package, Tag, ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import HeroSection from '../components/sections/HeroSection'
-import CategoriesSection from '../components/sections/CategoriesSection'
+import GiftCardsBrowseSection from '../components/sections/GiftCardsBrowseSection'
 import ProductSection from '../components/sections/ProductSection'
 import PromoSection from '../components/sections/PromoSection'
 import TagsSection from '../components/sections/TagsSection'
@@ -150,9 +150,9 @@ export default function HomePage() {
     <>
       <HeroSection />
 
-      {/* Categories + Tags chips + Promos */}
+      {/* Gift cards browse + Tags chips + Promos */}
       <div className="bg-white">
-        <CategoriesSection />
+        <GiftCardsBrowseSection />
         <TagsSection />
         <PromoSection />
       </div>

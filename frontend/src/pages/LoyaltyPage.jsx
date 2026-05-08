@@ -103,7 +103,7 @@ export default function LoyaltyPage() {
               Join Now — It's Free
             </Link>
             <Link
-              to="/categories"
+              to="/gift-cards"
               className="border border-white/40 text-white font-semibold px-8 py-3 rounded-xl hover:bg-white/10 transition-colors"
             >
               Browse Gift Cards

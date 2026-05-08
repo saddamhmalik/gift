@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Zap, Twitter, Instagram, Linkedin, Mail, MapPin, ExternalLink } from 'lucide-react'
+import { getHotDeals } from '../../api/products'
 
 const SHOP_LINKS = [
-  ['Categories', '/categories'],
+  ['Gift cards', '/gift-cards'],
   ['Hot Deals 🔥', '/hot-deals'],
   ['Trending', '/trending'],
   ['Best Sellers', '/best-sellers'],
@@ -25,6 +27,17 @@ const COMPANY_LINKS = [
 ]
 
 export default function Footer() {
+  const { data: hotDealsPayload } = useQuery({
+    queryKey: ['hot-deals', 'exists'],
+    queryFn: () => getHotDeals({ limit: 1 }),
+    staleTime: 300_000,
+  })
+  const hasHotDeals =
+    Array.isArray(hotDealsPayload?.data) && hotDealsPayload.data.length > 0
+  const shopLinks = SHOP_LINKS.filter(
+    ([, path]) => path !== '/hot-deals' || hasHotDeals
+  )
+
   return (
     <footer className="bg-surface-950 text-slate-500 mt-20">
       {/* Top gradient line */}
@@ -94,7 +107,7 @@ export default function Footer() {
               Shop
             </h4>
             <ul className="space-y-2.5 text-sm">
-              {SHOP_LINKS.map(([label, to]) => (
+              {shopLinks.map(([label, to]) => (
                 <li key={to}>
                   <Link
                     to={to}

@@ -207,7 +207,7 @@ export default function AboutPage() {
             </span>
           </div>
         </div>
-        <Link to="/categories" className="inline-flex items-center gap-2 btn-primary mt-10">
+        <Link to="/gift-cards" className="inline-flex items-center gap-2 btn-primary mt-10">
           Explore Gift Cards <ArrowRight size={15} />
         </Link>
       </section>
