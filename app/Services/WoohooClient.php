@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use GuzzleHttp\Promise\PromiseInterface;
+use Illuminate\Http\Client\Factory as HttpClientFactory;
 use Illuminate\Http\Client\Response;
+use Psr\Http\Message\ResponseInterface;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -168,12 +170,28 @@ class WoohooClient
         return false;
     }
 
-    /**
-     * @param  \Illuminate\Http\Client\Response|PromiseInterface  $pending
-     */
-    protected function awaitResponse(Response|PromiseInterface $pending): Response
+    protected function awaitResponse(mixed $pending): Response
     {
-        return $pending instanceof PromiseInterface ? $pending->wait() : $pending;
+        $guard = 0;
+        while ($guard++ < 32) {
+            if ($pending instanceof Response) {
+                return $pending;
+            }
+            if ($pending instanceof PromiseInterface) {
+                $pending = $pending->wait(true);
+                continue;
+            }
+            if (is_object($pending) && method_exists($pending, 'wait')) {
+                $pending = $pending->wait(true);
+                continue;
+            }
+            if ($pending instanceof ResponseInterface) {
+                return new Response($pending);
+            }
+            break;
+        }
+
+        throw new \RuntimeException('Unexpected HTTP client result: '.(is_object($pending) ? $pending::class : gettype($pending)));
     }
 
     /** @return array<string, string> */
@@ -183,7 +201,7 @@ class WoohooClient
         return ['User-Agent' => $ua];
     }
 
-    public function get(string $path, array $query = [])
+    public function get(string $path, array $query = []): Response
     {
         // Per Woohoo OAuth2.0 docs (GET with query params):
         //   Step B: sort query params alphabetically
@@ -221,7 +239,7 @@ class WoohooClient
         for ($attempt = 0; $attempt < 2; $attempt++) {
             $token = $this->getBearerToken();
             if (! $token) {
-                return Http::response(null, 401);
+                return new Response(HttpClientFactory::psr7Response(null, 401));
             }
 
             $result = Http::timeout($timeout)
@@ -258,7 +276,7 @@ class WoohooClient
      * @param  array<string, mixed>  $body
      * @return \Illuminate\Http\Client\Response
      */
-    public function post(string $path, array $body)
+    public function post(string $path, array $body): Response
     {
         $url = $this->baseUrl . $path;
         $sortedBody = $this->sortJsonKeysRecursive($body);
@@ -273,7 +291,7 @@ class WoohooClient
         for ($attempt = 0; $attempt < 2; $attempt++) {
             $token = $this->getBearerToken();
             if (! $token) {
-                return Http::response(null, 401);
+                return new Response(HttpClientFactory::psr7Response(null, 401));
             }
 
             $result = Http::timeout($timeout)
