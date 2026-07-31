@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './contexts/AuthContext'
 import { OrderProvider } from './contexts/OrderContext'
 import Layout from './components/layout/Layout'
+import ScrollToTop from './components/ScrollToTop'
 
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -26,7 +27,6 @@ import TagsPage from './pages/TagsPage'
 import TagPage from './pages/TagPage'
 import CardBalancePage from './pages/CardBalancePage'
 import ProfilePage from './pages/ProfilePage'
-import { Navigate } from 'react-router-dom'
 import NotFoundPage from './pages/NotFoundPage'
 
 const queryClient = new QueryClient({
@@ -39,6 +39,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <ScrollToTop />
         <AuthProvider>
           <OrderProvider>
             <Routes>

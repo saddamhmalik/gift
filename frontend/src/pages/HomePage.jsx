@@ -21,6 +21,16 @@ function useProductQuery(key, fn) {
 
 const SECTIONS = [
   {
+    key: 'featured',
+    fn: getFeatured,
+    title: 'Featured',
+    icon: Sparkles,
+    iconColor: 'text-blue-500',
+    badge: 'featured',
+    viewAllLink: '/featured',
+    accentColor: 'from-blue-500 to-indigo-600',
+  },
+  {
     key: 'hotDeals',
     fn: getHotDeals,
     title: 'Hot Deals',
@@ -49,16 +59,6 @@ const SECTIONS = [
     badge: 'bestseller',
     viewAllLink: '/best-sellers',
     accentColor: 'from-amber-400 to-orange-500',
-  },
-  {
-    key: 'featured',
-    fn: getFeatured,
-    title: 'Featured',
-    icon: Sparkles,
-    iconColor: 'text-blue-500',
-    badge: 'featured',
-    viewAllLink: '/featured',
-    accentColor: 'from-blue-500 to-indigo-600',
   },
   {
     key: 'newArrivals',
@@ -150,14 +150,7 @@ export default function HomePage() {
     <>
       <HeroSection />
 
-      {/* Gift cards browse + Tags chips + Promos */}
-      <div className="bg-white">
-        <GiftCardsBrowseSection />
-        <TagsSection />
-        <PromoSection />
-      </div>
-
-      {/* Product sections — only rendered when they have at least one product */}
+      {/* Curated product rails — Featured first, browse later */}
       <div className="bg-surface-50">
         {SECTIONS.map(({ key, title, icon, iconColor, badge, viewAllLink, accentColor }) => {
           const q = queries[key]
@@ -180,7 +173,14 @@ export default function HomePage() {
         })}
       </div>
 
-      {/* Shop by Tags — full browse section */}
+      {/* Full catalog browse + promo chips */}
+      <div className="bg-white">
+        <GiftCardsBrowseSection />
+        <TagsSection />
+        <PromoSection />
+      </div>
+
+      {/* Shop by Tags — secondary browse path */}
       <TagsBrowseSection />
 
       {/* Trust bar */}

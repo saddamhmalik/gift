@@ -3,7 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { SlidersHorizontal, X, ChevronLeft, ChevronRight, PackageSearch, CreditCard } from 'lucide-react'
 import { searchProducts } from '../api/products'
-import ProductCard from '../components/ui/ProductCard'
+import ProductCard, { PRODUCT_GRID_CLASS_WITH_SIDEBAR } from '../components/ui/ProductCard'
 
 function SkeletonCard() {
   return (
@@ -197,7 +197,7 @@ export default function GiftCardsPage() {
             )}
 
             {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className={PRODUCT_GRID_CLASS_WITH_SIDEBAR}>
                 {Array.from({ length: 9 }).map((_, i) => (
                   <SkeletonCard key={i} />
                 ))}
@@ -219,7 +219,7 @@ export default function GiftCardsPage() {
             ) : (
               <>
                 <div
-                  className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 transition-opacity ${busy ? 'opacity-60' : 'opacity-100'}`}
+                  className={`${PRODUCT_GRID_CLASS_WITH_SIDEBAR} transition-opacity ${busy ? 'opacity-60' : 'opacity-100'}`}
                 >
                   {results.map((product, i) => (
                     <ProductCard key={product.id} product={product} index={i} />

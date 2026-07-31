@@ -31,7 +31,6 @@ export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [tagsOpen, setTagsOpen] = useState(false)
@@ -62,12 +61,6 @@ export default function Navbar() {
   const pointBalance = loyaltyData?.data?.balance ?? 0
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  useEffect(() => {
     setMenuOpen(false)
     setSearchOpen(false)
     setTagsOpen(false)
@@ -91,11 +84,7 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-surface-950/95 backdrop-blur-xl shadow-lg shadow-black/20 border-b border-white/5'
-          : 'bg-surface-950/80 backdrop-blur-md'
-      }`}
+      className="fixed inset-x-0 top-0 z-50 bg-[#07041a]/90 backdrop-blur-xl border-b border-white/5 shadow-lg shadow-black/20"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -351,7 +340,7 @@ export default function Navbar() {
 
       {/* ── Mobile menu ── */}
       {menuOpen && (
-        <div className="md:hidden bg-surface-950/98 backdrop-blur-xl border-t border-white/8 px-4 py-4 space-y-1">
+        <div className="md:hidden bg-[#07041a]/98 backdrop-blur-xl border-t border-white/8 px-4 py-4 space-y-1">
           {/* Mobile search */}
           <form
             onSubmit={handleSearch}

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ArrowRight, CreditCard } from 'lucide-react'
 import { searchProducts } from '../../api/products'
-import ProductCard from '../ui/ProductCard'
+import ProductCard, { PRODUCT_GRID_CLASS } from '../ui/ProductCard'
 import { SkeletonCard } from '../ui/Skeleton'
 
 export default function GiftCardsBrowseSection() {
@@ -42,12 +42,12 @@ export default function GiftCardsBrowseSection() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+      <div className={PRODUCT_GRID_CLASS}>
         {isLoading
-          ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-          : products.slice(0, 6).map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
+          ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
+          : products.slice(0, 8).map((p) => <ProductCard key={p.id} product={p} />)}
         {!isLoading && products.length === 0 && (
-          <p className="col-span-3 text-slate-400 text-sm py-8">
+          <p className="col-span-full text-slate-400 text-sm py-8">
             No gift cards available yet. Try again after catalog sync.
           </p>
         )}

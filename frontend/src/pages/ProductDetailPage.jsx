@@ -27,6 +27,25 @@ import { initiatePayment, redirectToPayU } from '../api/payment'
 /** Same upper bound as OrderService / order API (quantity 1–99). */
 const MAX_ORDER_QUANTITY = 99
 
+/** Platform minimum / preferred default amount for free-range gift cards. */
+const DEFAULT_GIFT_AMOUNT = 100
+
+function resolveRangeBounds(minPrice, maxPrice) {
+  const catalogMin = Number.isFinite(minPrice) && minPrice > 0 ? minPrice : DEFAULT_GIFT_AMOUNT
+  const catalogMax = Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : null
+  let min = Math.max(DEFAULT_GIFT_AMOUNT, catalogMin)
+  if (catalogMax !== null && min > catalogMax) {
+    min = catalogMax
+  }
+  return { min, max: catalogMax ?? min }
+}
+
+function defaultRangeAmount(min, max) {
+  if (DEFAULT_GIFT_AMOUNT < min) return min
+  if (DEFAULT_GIFT_AMOUNT > max) return max
+  return DEFAULT_GIFT_AMOUNT
+}
+
 /* ─── HTML helpers ──────────────────────────────────────────────────────────── */
 function HtmlContent({ html }) {
   if (!html) return null
@@ -90,7 +109,7 @@ function LoyaltyEarnBadge({ points, creditDelayHours = 24 }) {
 export default function ProductDetailPage() {
   const { slug } = useParams()
   const { user } = useAuth()
-  const { addItem, loading: orderLoading } = useOrder()
+  const { addItem, loading: orderLoading, resetOrder } = useOrder()
   const navigate = useNavigate()
 
   const [selectedDenom, setSelectedDenom] = useState(null)
@@ -123,15 +142,25 @@ export default function ProductDetailPage() {
 
   const product = data?.data
 
-  // Auto-select the first denomination as soon as product data arrives
+  // Auto-select the first denomination / default free-range amount when product loads
   useEffect(() => {
-    if (product) {
-      const denoms = Array.isArray(product.denominations) ? product.denominations : []
-      if (denoms.length > 0 && selectedDenom === null) {
+    if (!product) return
+    const denoms = Array.isArray(product.denominations) ? product.denominations : []
+    if (denoms.length > 0) {
+      if (selectedDenom === null) {
         const first =
           typeof denoms[0] === 'object' ? String(denoms[0].price ?? denoms[0]) : String(denoms[0])
         setSelectedDenom(first)
       }
+      return
+    }
+    const priceType = product.price_type ?? 'RANGE'
+    if (priceType === 'RANGE') {
+      const { min, max } = resolveRangeBounds(
+        parseFloat(product.min_price) || 0,
+        parseFloat(product.max_price) || 0
+      )
+      setCustomPrice(String(defaultRangeAmount(min, max)))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product])
@@ -163,8 +192,9 @@ export default function ProductDetailPage() {
 
   const priceType = product.price_type ?? 'RANGE'
   const denoms = Array.isArray(product.denominations) ? product.denominations : []
-  const minPrice = parseFloat(product.min_price) || 0
-  const maxPrice = parseFloat(product.max_price) || 0
+  const catalogMinPrice = parseFloat(product.min_price) || 0
+  const catalogMaxPrice = parseFloat(product.max_price) || 0
+  const { min: minPrice, max: maxPrice } = resolveRangeBounds(catalogMinPrice, catalogMaxPrice)
   const hasDenoms = denoms.length > 0
   const isFreeRange = priceType === 'RANGE' && !hasDenoms
 
@@ -172,7 +202,7 @@ export default function ProductDetailPage() {
     ? selectedDenom != null
       ? parseFloat(selectedDenom)
       : parseFloat(denoms[0]) || minPrice
-    : parseFloat(customPrice) || minPrice
+    : parseFloat(customPrice) || defaultRangeAmount(minPrice, maxPrice)
 
   const orderTotal = (effectivePrice || 0) * qty
   // Loyalty
@@ -236,6 +266,7 @@ export default function ProductDetailPage() {
 
       redirectToPayU(payu_params)
     } catch (err) {
+      resetOrder()
       setBuyError(
         err.response?.data?.message || err.message || 'Something went wrong. Please try again.'
       )
@@ -387,7 +418,7 @@ export default function ProductDetailPage() {
                   step="1"
                   value={customPrice}
                   onChange={(e) => setCustomPrice(e.target.value)}
-                  placeholder={String(minPrice)}
+                  placeholder={String(defaultRangeAmount(minPrice, maxPrice))}
                   className="w-40 border-2 border-gray-200 focus:border-primary-400 rounded-xl px-3 py-2 text-sm outline-none transition-all"
                 />
               </div>
@@ -695,21 +726,23 @@ export default function ProductDetailPage() {
           <p className="text-center text-xs text-gray-400">
             Secured by PayU · 256-bit SSL encryption · Instant delivery after payment
           </p>
+        </div>
+      </div>
 
-          {/* Description */}
+      {/* About + T&C — full width below purchase columns */}
+      {(product.description || product.purchaser_description || product.tnc_content) && (
+        <div className="mt-10 pt-8 border-t border-gray-100 space-y-5">
           {(product.description || product.purchaser_description) && (
-            <div className="border-t border-gray-100 pt-5">
+            <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
                 <Info size={14} /> About this Gift Card
               </h3>
               <HtmlContent html={product.purchaser_description || product.description} />
             </div>
           )}
-
-          {/* T&C */}
           {product.tnc_content && <TncAccordion html={product.tnc_content} />}
         </div>
-      </div>
+      )}
     </div>
   )
 }

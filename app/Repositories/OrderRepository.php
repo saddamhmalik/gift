@@ -44,8 +44,9 @@ class OrderRepository
         return $this->model
             ->pending()
             ->where('user_id', $user->id)
-            ->whereNull('payment_txnid')   // no payment initiated
-            ->whereNull('woohoo_refno')    // no Woohoo order attempted
+            ->whereNull('payu_mihpayid')  // payment not completed
+            ->whereNull('woohoo_refno')   // Woohoo order not attempted
+            ->latest('id')
             ->first();
     }
 

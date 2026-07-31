@@ -8,7 +8,7 @@ import {
   getFeatured,
   getNewArrivals,
 } from '../api/products'
-import ProductCard from '../components/ui/ProductCard'
+import ProductCard, { PRODUCT_GRID_CLASS } from '../components/ui/ProductCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
 
 const CONFIG = {
@@ -76,9 +76,9 @@ export default function ProductListPage() {
         <p className="text-gray-500 mt-1">{cfg.desc}</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className={PRODUCT_GRID_CLASS}>
         {isLoading
-          ? Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
+          ? Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
           : products.map((p) => <ProductCard key={p.id} product={p} badge={cfg.badge} />)}
       </div>
 

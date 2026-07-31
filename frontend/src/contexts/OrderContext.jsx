@@ -24,15 +24,16 @@ export function OrderProvider({ children }) {
     if (token) localStorage.setItem('order_token', token)
   }
 
-  const ensureOrder = useCallback(async () => {
-    if (order) return order
+  const ensureOrder = useCallback(async ({ force = false } = {}) => {
+    if (order && !force) return order
     setLoading(true)
     try {
       const token = localStorage.getItem('order_token')
       const res = await createOrder(token ? { order_token: token } : {})
-      saveToken(res.data?.order_token)
-      setOrder(res.data)
-      return res.data
+      const next = res.data
+      saveToken(next?.order_token)
+      setOrder(next)
+      return next
     } finally {
       setLoading(false)
     }
@@ -48,6 +49,7 @@ export function OrderProvider({ children }) {
       return res.data
     } catch {
       setOrder(null)
+      localStorage.removeItem('order_token')
     } finally {
       setLoading(false)
     }
@@ -70,9 +72,11 @@ export function OrderProvider({ children }) {
       setLoading(true)
       setError(null)
       try {
-        const o = await ensureOrder()
+        // Always sync with server so a prior PayU attempt (payment_txnid set) cannot
+        // leave us with a stale in-memory order that setItem can no longer resolve.
+        let o = await ensureOrder({ force: true })
         const payload = {
-          order_token: o.order_token,
+          order_token: o?.order_token,
           product_id: productId,
           quantity,
           unit_price: unitPrice,
@@ -86,13 +90,30 @@ export function OrderProvider({ children }) {
           if (giftRecipientPhone) payload.gift_recipient_phone = giftRecipientPhone
           if (giftMessage) payload.gift_message = giftMessage
         }
-        const res = await setOrderItem(payload)
-        setOrder(res.data)
-        return res.data
+
+        try {
+          const res = await setOrderItem(payload)
+          setOrder(res.data)
+          saveToken(res.data?.order_token)
+          return res.data
+        } catch (err) {
+          // Stale token / no pending order — clear and retry once with a fresh order
+          if (err.response?.status === 404) {
+            localStorage.removeItem('order_token')
+            setOrder(null)
+            o = await ensureOrder({ force: true })
+            payload.order_token = o?.order_token
+            const res = await setOrderItem(payload)
+            setOrder(res.data)
+            saveToken(res.data?.order_token)
+            return res.data
+          }
+          throw err
+        }
       } catch (err) {
-        const msg = err.response?.data?.message || 'Failed to add item'
+        const msg = err.response?.data?.message || err.message || 'Failed to add item'
         setError(msg)
-        throw new Error(msg)
+        throw Object.assign(new Error(msg), { response: err.response })
       } finally {
         setLoading(false)
       }

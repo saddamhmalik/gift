@@ -14,6 +14,9 @@ use InvalidArgumentException;
 
 class OrderService
 {
+    /** Platform floor for free-range gift card amounts (INR). */
+    public const MIN_GIFT_AMOUNT = 100.0;
+
     public function __construct(
         protected OrderRepository $orderRepository,
         protected OrderItemRepository $orderItemRepository,
@@ -76,7 +79,6 @@ class OrderService
             return round($dealPrice, 2);
         }
 
-        $priceType = strtoupper((string) ($product->price_type ?? ''));
         $min = $product->min_price ? (float) $product->min_price : null;
         $max = $product->max_price ? (float) $product->max_price : null;
         $slabs = $this->getPriceSlabs($product);
@@ -90,15 +92,17 @@ class OrderService
             throw new InvalidArgumentException('Provide unit_price or selected_denomination from allowed values: ' . implode(', ', $slabs));
         }
 
-        // RANGE without denominations: default to min_price
-        if ($min !== null) {
-            return round($min, 2);
+        // RANGE without denominations: prefer platform default (100), clamped to [min, max]
+        [$rangeMin, $rangeMax] = $this->resolveRangeBounds($min, $max);
+        $preferred = self::MIN_GIFT_AMOUNT;
+        if ($preferred < $rangeMin) {
+            return round($rangeMin, 2);
         }
-        if ($max !== null) {
-            return round($max, 2);
+        if ($preferred > $rangeMax) {
+            return round($rangeMax, 2);
         }
 
-        throw new InvalidArgumentException('Product has no price. Provide unit_price or selected_denomination.');
+        return round($preferred, 2);
     }
 
     /**
@@ -203,11 +207,24 @@ class OrderService
     public function resolveOrder(?string $orderToken, ?User $user): ?Order
     {
         if ($user) {
-            return $this->orderRepository->findPendingByUser($user);
+            $order = $this->orderRepository->findPendingByUser($user);
+            if ($order) {
+                return $order;
+            }
         }
+
         if ($orderToken) {
-            return $this->orderRepository->findByToken($orderToken);
+            $order = $this->orderRepository->findByToken($orderToken);
+            if ($order && $user && $order->user_id && (int) $order->user_id !== (int) $user->id) {
+                return null;
+            }
+            if ($order && $user && ! $order->user_id) {
+                $order->update(['user_id' => $user->id]);
+            }
+
+            return $order;
         }
+
         return null;
     }
 
@@ -241,15 +258,31 @@ class OrderService
             );
         }
 
-        // No denominations: validate within min/max range
+        // No denominations: validate within min/max range (platform floor ₹100)
         $min = $product->min_price ? (float) $product->min_price : null;
         $max = $product->max_price ? (float) $product->max_price : null;
-        if ($min !== null && $price < $min) {
-            throw new InvalidArgumentException("Price must be at least {$min}.");
+        [$rangeMin, $rangeMax] = $this->resolveRangeBounds($min, $max);
+        if ($price < $rangeMin) {
+            throw new InvalidArgumentException("Price must be at least {$rangeMin}.");
         }
-        if ($max !== null && $price > $max) {
-            throw new InvalidArgumentException("Price must be at most {$max}.");
+        if ($price > $rangeMax) {
+            throw new InvalidArgumentException("Price must be at most {$rangeMax}.");
         }
+    }
+
+    /**
+     * @return array{0: float, 1: float}
+     */
+    protected function resolveRangeBounds(?float $min, ?float $max): array
+    {
+        $catalogMin = $min !== null && $min > 0 ? $min : self::MIN_GIFT_AMOUNT;
+        $rangeMin = max(self::MIN_GIFT_AMOUNT, $catalogMin);
+        $rangeMax = $max !== null && $max > 0 ? $max : $rangeMin;
+        if ($rangeMin > $rangeMax) {
+            $rangeMin = $rangeMax;
+        }
+
+        return [$rangeMin, $rangeMax];
     }
 
     /**

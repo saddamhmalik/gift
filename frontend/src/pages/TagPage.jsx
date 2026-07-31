@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Tag, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react'
 import { getTagProducts } from '../api/tags'
-import ProductCard from '../components/ui/ProductCard'
+import ProductCard, { PRODUCT_GRID_CLASS } from '../components/ui/ProductCard'
 import { SkeletonCard } from '../components/ui/Skeleton'
 
 export default function TagPage() {
@@ -67,7 +67,7 @@ export default function TagPage() {
       </div>
 
       {/* Products grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+      <div className={PRODUCT_GRID_CLASS}>
         {isLoading
           ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
           : products.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
